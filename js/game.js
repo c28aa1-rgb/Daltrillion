@@ -138,16 +138,22 @@ function setDist(m){
 function nodesHTML(total,answers,cur){
   return Array.from({length:total},(_,k)=>{ const a=answers[k]; return `<span class="node ${a?"t-"+a.tier:(k===cur?"now":"")}"></span>`; }).join("");
 }
+/* Practice remembers which questions this browser has already played, so new rounds skip them until
+   the whole pool has come up (the server then says `reset` and the list starts over). */
+const SEEN_KEY="daltrillion-practice-seen";
+function practiceSeen(){ try{ const v=JSON.parse(localStorage.getItem(SEEN_KEY)); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+function markSeen(id){ if(!id) return; try{ const v=practiceSeen().filter(x=>x!==id); v.push(id); localStorage.setItem(SEEN_KEY,JSON.stringify(v.slice(-400))); }catch(e){} }
 /* Solo rounds run on the server: it picks the prompts, keeps the clock and judges every guess.
    This page only knows the prompt it's on and what each guess turned out to be. */
 async function startGame(mode){
   if(game && game.busy) return;
   introError("");
-  const r=await api("round/start",mode==="try"?{mode:"daily",try:TRY&&TRY.ticket}:mode==="daily"?{mode,player:playerId()}:{mode});
+  const r=await api("round/start",mode==="try"?{mode:"daily",try:TRY&&TRY.ticket}:mode==="daily"?{mode,player:playerId()}:{mode,seen:practiceSeen()});
   if(r.error==="try_expired"){ introError("This test link has expired. Open it again from the admin Schedule."); return; }
   if(r.error==="no_daily"){ await loadCatalog(); introError(noDailyMsg()); return; }
   if(r.error==="no_practice"){ introError("Practice opens once the first Daily questions retire."); return; }
   if(r.error||!r.prompt){ introError(OFFLINE_MSG); return; }
+  if(r.mode==="practice" && r.reset){ try{ localStorage.setItem(SEEN_KEY,"[]"); }catch(e){} }
   game={mode:r.mode, round:r.round, day:r.day, total:r.prompt.total, prompt:r.prompt, answers:[], misses:[], suggestion:null, busy:false};
   distShown=0; $("dist").textContent="0 M";
   show("play"); prowlTo(0); nextPrompt();
@@ -162,6 +168,7 @@ function introError(msg){
 }
 function nextPrompt(){
   const p=game.prompt;
+  if(game.mode==="practice") markSeen(p.cat);
   game.misses=[]; game.suggestion=null;
   $("nodes").innerHTML=nodesHTML(game.total,game.answers,p.i);
   $("cat").textContent=`${p.label} · ${p.i+1} of ${p.total}`;
