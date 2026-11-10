@@ -9,7 +9,7 @@ const SERVER = (window.DALTRILLION_SERVER || location.origin).replace(/\/$/, "")
 const PSTORE="daltrillion-tailgate";
 const clip=(v,n)=>[...String(v==null?"":v)].filter(ch=>{ const c=ch.codePointAt(0); return c>31 && !(c>=0x200B&&c<=0x200F) && !(c>=0x2028&&c<=0x202E); }).join("").slice(0,n);
 const CODE_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ";
-let party=null, pSkin=0, adminUnlocked=false;
+let party=null, pSkin=0;
 function perr(msg){ $("perr").textContent=msg; $("perr").hidden=!msg; }
 /* This browser's leaderboard id: random, made here, never shown to anyone. */
 function playerId(){

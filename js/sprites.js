@@ -12,9 +12,12 @@ const SKINS=[
   {id:"sloth",   name:"Sloth",    pal:{a:"#8E7B66",b:"#E9DCC5"}, rows:["....kkkkkk....","..kkaaaaaakk..",".kaaaaaaaaaak.","kaabbbbbbbbaak","kabkkbbbbkkbak","kabkekbbkekbak","kabbkkbbkkbbak","kaabbbkkbbbaak",".kaabbbbbbaak.","..kkaaaaaakk..",".kaaaaaaaaaak.","kkaaaaaaaaaakk","kwkaaaaaaaakwk",".kkkkkkkkkkkk."]},
   {id:"frog",    name:"Dart Frog",pal:{a:"#2D6BFF"}, rows:["..kkk....kkk..",".kwewk..kwewk.",".kwwwkkkkwwwk.","kaaaaaaaaaaaak","kaakaaaaaakaak","kaaaaaaaaaaaak","kaakkkkkkkkaak",".kaaaaaaaaaak.","..kaakaaakaak.",".kaaaaaaaaaak.","kaakaaaaaakaak","kaaaaaaaaaaaak","kaakk....kkaak","kkkk......kkkk"]},
   {id:"snake",   name:"Tree Snake",pal:{a:"#3FA65A",b:"#FFC94D",c:"#E2403A"}, rows:["..............","....kkkk......","...kaaaak.....","..kaeaeaak....","..kaaaaaak....","...kaaaak.....","....kaak..c...","..kkaaakkkc...",".kaaaaaaaak...","kaabaabaaaak..","kaaaaaaaaaaak.",".kaabaabaaabak","..kaaaaaaaaak.","...kkkkkkkkk.."]},
-  {id:"ivan",    name:"Golden Ivan",pal:{a:"#FFC94D"}, rows:TIGER_FACE, secret:true}
+  // Secret skins: unlocked by a code typed in the Tiger Tailgate setup. The server checks the code (SKIN_CODES in
+  // server/src/game/config.js), so the codes aren't in this file. New skins go at the end so nobody's saved choice moves.
+  {id:"ivan",    name:"Golden Ivan",pal:{a:"#FFC94D"}, rows:TIGER_FACE, secret:true},
+  {id:"dalton",  name:"Dalton Blue Tiger",pal:{a:"#1F5FD6",b:"#F26A1B",c:"#0A1A3F"}, secret:true,
+    rows:["..kk......kk..",".kbak....kabk.",".kaaakkkkaaak.","kaabaabbaabaak","kaaaaaaaaaaaak","kbaeaaaaaaeabk","kbaaawwwwaaabk","kaaaawkkwaaaak",".kaaawwwwaaak.","..kkaaaaaakk..",".kcccwwwcccck.","kccccwccwcccck","kccccwwwccccck",".kkkkkkkkkkkk."]}
 ];
-const ADMIN_SKIN=SKINS.length-1;
 
 const BASE_PAL={k:"#0B0B0D",w:"#FBFBF8",e:"#0B0B0D",y:"#FFD84D"};
 function drawAnimal(ctx,skin,x,y,now,opts={}){

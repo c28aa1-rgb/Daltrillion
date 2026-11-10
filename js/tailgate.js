@@ -2,23 +2,28 @@
    SETUP
    ========================================================= */
 function renderSetup(){
-  const pr=loadPrefs(); adminUnlocked=!!pr.admin; pSkin=Math.min(pr.skin|0, adminUnlocked?ADMIN_SKIN:ADMIN_SKIN-1); $("pname").value=pr.name||""; $("skincode").value=""; $("skinmsg").textContent="";
+  const pr=loadPrefs(); pSkin=skinOk(pr.skin|0) ? pr.skin|0 : 0; $("pname").value=pr.name||""; $("skincode").value=""; $("skinmsg").textContent="";
   drawSkins(); $("ptitle").dataset.wavy=""; wavy($("ptitle"),"Tiger Tailgate"); enter(document.querySelector("#psetup .panelw"));
   $("pnote").textContent="Friends open this same page and enter your code.";
   perr(""); show("psetup");
 }
+/* Secret skins this browser has unlocked (Golden Ivan used to be the only one, saved as prefs.admin). */
+function unlockedSkins(){ const pr=loadPrefs(), u=new Set(Array.isArray(pr.unlocked)?pr.unlocked:[]); if(pr.admin) u.add("ivan"); return u; }
+const skinOk=i=>!!SKINS[i] && (!SKINS[i].secret || unlockedSkins().has(SKINS[i].id));
 function drawSkins(){
-  const box=$("cubs"); box.innerHTML="";
-  SKINS.forEach((sk,i)=>{ if(sk.secret && !adminUnlocked) return;
+  const box=$("cubs"); box.innerHTML=""; const open=unlockedSkins();
+  SKINS.forEach((sk,i)=>{ if(sk.secret && !open.has(sk.id)) return;
     const b=document.createElement("button"); b.type="button"; b.className="cub"+(sk.secret?" secret":""); b.setAttribute("aria-pressed",String(i===pSkin)); b.setAttribute("aria-label",sk.name); b.title=sk.name;
     b.style.setProperty("--k",i); b.appendChild(skinCanvas(i)); const l=document.createElement("span"); l.textContent=sk.name; b.appendChild(l);
     b.onclick=()=>{ pSkin=i; [...box.children].forEach(x=>x.setAttribute("aria-pressed",String(x===b))); }; box.appendChild(b); });
 }
-function tryCode(){
-  const v=$("skincode").value.trim().toUpperCase();
-  if(v==="ADMIN"){ adminUnlocked=true; pSkin=ADMIN_SKIN; const pr=loadPrefs(); savePrefs({...pr,admin:1}); drawSkins(); $("skinmsg").textContent="Secret skin unlocked: Golden Ivan"; }
-  else $("skinmsg").textContent = v ? "That code doesn't unlock anything." : "";
-  $("skincode").value="";
+async function tryCode(){
+  const v=$("skincode").value.trim(); $("skincode").value="";
+  if(!v){ $("skinmsg").textContent=""; return; }
+  $("skinmsg").textContent="Checking…";
+  const r=await api("skin",{code:v}), i=r&&r.ok ? SKINS.findIndex(s=>s.secret && s.id===r.skin) : -1;
+  if(i>=0){ const pr=loadPrefs(), u=unlockedSkins(); u.add(SKINS[i].id); savePrefs({...pr,unlocked:[...u]}); pSkin=i; drawSkins(); $("skinmsg").textContent=`Secret skin unlocked: ${SKINS[i].name}`; }
+  else $("skinmsg").textContent = r&&r.error==="offline" ? OFFLINE_MSG : "That code doesn't unlock anything.";
 }
 const myName=()=>clip($("pname").value.trim(),20);
 
