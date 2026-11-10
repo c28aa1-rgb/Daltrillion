@@ -4,6 +4,7 @@
 const TG={bg:null,bgKey:"",pos:[],center:{x:0,y:0},bell:{x:0,y:0},ringAt:0,chatW:0,lionA:Math.PI/2};
 const turnMs=()=>{ const s=party&&party.st&&party.st.turnSec; return (s>=2&&s<=30?s:6)*1000; };
 function ell(ctx,cx,cy,rx,ry){ for(let dy=-ry;dy<=ry;dy++){ const w=Math.round(rx*Math.sqrt(Math.max(0,1-(dy*dy)/(ry*ry)))); ctx.fillRect(Math.round(cx-w),Math.round(cy+dy),2*w+1,1); } }
+const SEAT_GAP=100*Math.PI/180;   // the empty stretch at the bottom of the circle, above the answer box
 function tgGeometry(){
   const s=SC.scale, W=SC.W, H=SC.H;
   const chatCss = innerWidth>=900 && !$("tgchat").classList.contains("off") ? 320 : 0;
@@ -18,8 +19,10 @@ function tgGeometry(){
     const top=(card && !card.hidden ? card.getBoundingClientRect().bottom : 0)/s + 46/s;
     const bottom=dock.getBoundingClientRect().top/s - 46/s;
     if(bottom>top){
-      ry=Math.max(18, Math.min(ry, (bottom-top)/2));
-      cy=Math.min(Math.max(cy, top+ry), bottom-ry);
+      // Nobody sits at the very bottom (see SEAT_GAP), so the lowest rocks are only LOW·ry below the middle.
+      const LOW=Math.sin(Math.PI/2+SEAT_GAP/2);
+      ry=Math.max(18, Math.min(ry*1.15, (bottom-top)/(1+LOW)));
+      cy=Math.min(Math.max(cy, top+ry), bottom-LOW*ry);
     }
   }
   return {cx,cy,rx,ry,W,H,s};
@@ -124,7 +127,10 @@ function layoutSeats(){
   if(!party||!party.st) return;
   const st=party.st, g=tgGeometry(), ids=seatIds(), n=Math.max(ids.length,1);
   const winner=st.phase==="final"?st.winner:null;
-  TG.pos=ids.map((id,i)=>{ const a=-Math.PI/2+Math.PI/n+2*Math.PI*i/n; const p=st.pl[id];
+  // Seats spread around the circle except a gap at the bottom, where the answer box would cover
+  // that animal and its answers. Angles run clockwise from just past the gap, over the top, back down.
+  const a0=Math.PI/2+SEAT_GAP/2, span=2*Math.PI-SEAT_GAP;
+  TG.pos=ids.map((id,i)=>{ const a=a0+span*(i+.5)/n; const p=st.pl[id];
     return {id,x:g.cx+g.rx*Math.cos(a),y:g.cy+g.ry*Math.sin(a),seed:(i*7+3),skin:p.k|0,
       show:!p.out||st.phase==="lobby", lit:(st.phase==="play"&&id===st.holder)||(st.phase==="pop"&&st.pop&&st.pop.id===id), win:id===winner}; });
   if(!TG.bell.x){ TG.bell.x=g.cx; TG.bell.y=g.cy; }
