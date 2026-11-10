@@ -4,12 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Daltrillion has moved</title>
-<meta http-equiv="refresh" content="0; url=https://daltrillion.web.app/">
+<noscript><meta http-equiv="refresh" content="0; url=https://daltrillion.web.app/"></noscript>
 <link rel="canonical" href="https://daltrillion.web.app/">
 <script>
   // Keep the rest of the address: /Daltrillion/admin/ goes to daltrillion.web.app/admin/.
   var rest = location.pathname.replace(/^\/Daltrillion/i, "") || "/";
-  location.replace("https://daltrillion.web.app" + rest + location.search + location.hash);
+  // The game's saved player id, name and today's progress live in this address's storage; carry them over
+  // in the # part of the link (never sent to a server). The new site reads it once and removes it.
+  var hash = location.hash, carry = {};
+  try {
+    ["daltrillion-player", "daltrillion-tailgate", "ivans-prowl-v1"].forEach(function (k) { var v = localStorage.getItem(k); if (v !== null) carry[k] = v; });
+    if (!/^\/admin/.test(rest) && Object.keys(carry).length)
+      hash = "#carry=" + btoa(unescape(encodeURIComponent(JSON.stringify(carry)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  } catch (e) {}
+  location.replace("https://daltrillion.web.app" + rest + location.search + hash);
 </script>
 <style>body{margin:0;background:#0d1b3d;color:#f3ead2;font:18px/1.5 system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center}a{color:#ffc94d}</style>
 </head>
