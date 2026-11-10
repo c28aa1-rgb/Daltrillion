@@ -21,7 +21,7 @@ function syncName(b){
   if(b.name && b.name!==pr.name) savePrefs({...pr,name:b.name});
   else if(!b.name && pr.name && !BOARD.synced){ BOARD.synced=true; saveBoardName(pr.name); }
 }
-/* Names follow the same rules as the casino game (checked on the server): 2-16 letters, numbers
+/* Names follow the same rules as the casino game (checked on the server): 2-20 letters, numbers
    and . _ ' -, nothing rude, nobody else's. Only a name the server accepted is remembered. */
 async function saveBoardName(name){
   const r=await api("board/name",{player:playerId(),name});
@@ -93,7 +93,7 @@ async function renderBoardCard(){
       <p>${me.beat!=null?`You prowled farther than <b>${me.beat}%</b> of today's players.`:"You're the first one done today."}</p></div>
     ${histHTML(d,me.score)}
     <form class="lbrow" id="rbname" autocomplete="off">
-      <input class="ex-search" id="rbnamein" maxlength="16" minlength="2" placeholder="Your name on the board" value="${esc(named)}" spellcheck="false" aria-label="Your name on the board">
+      <input class="ex-search" id="rbnamein" maxlength="20" minlength="2" placeholder="Your name on the board" value="${esc(named)}" spellcheck="false" aria-label="Your name on the board">
       <button class="pxbtn navy small" type="button" id="rbopen">Leaderboard</button>
     </form>
     <p class="mute small" id="rbmsg" style="margin:0">${named?`On the board as ${esc(named)}.`:"Without a name you show up as Anonymous cub. It saves as you type."}</p>`;

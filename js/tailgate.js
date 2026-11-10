@@ -20,7 +20,7 @@ function tryCode(){
   else $("skinmsg").textContent = v ? "That code doesn't unlock anything." : "";
   $("skincode").value="";
 }
-const myName=()=>clip($("pname").value.trim(),16);
+const myName=()=>clip($("pname").value.trim(),20);
 
 async function enterParty(code, asHost){
   const name=myName(); if(!name){ perr("Pick a name first."); $("pname").focus(); return; }
@@ -135,7 +135,7 @@ function addChat(m){ if(!party) return; party.chat.push(m); if(party.chat.length
 function onChat(m){
   if(!party) return;
   const from=m.from, pl=party.st&&party.st.pl[from];
-  const who=clip((pl&&pl.n)||"Someone",16);
+  const who=clip((pl&&pl.n)||"Someone",20);
   if(m.cel){ const st=party.st; if(st && st.phase==="final" && st.winner===from) startCelebration(); return; }
   if(typeof m.emote==="string" && EMOTE_IDS.has(m.emote)){
     party.emoteAt[from]={e:m.emote,at:performance.now()}; sfx("pop"); addChat({who,me:from===party.me,emote:m.emote});

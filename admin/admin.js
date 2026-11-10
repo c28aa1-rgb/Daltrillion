@@ -568,7 +568,7 @@ async function loadPlayers() {
   if (!Array.isArray(rows)) return;
   const m = (pts) => `${(pts * 4).toLocaleString()} m`;
   $("playerrows").innerHTML = rows.map((r) => `<tr class="${r.hidden ? "hiddenrow" : ""}" data-player="${esc(r.player)}">
-    <td><input class="pname" value="${esc(r.name)}" maxlength="16" aria-label="Name" placeholder="Anonymous cub"> ${r.hidden ? '<span class="mute">(hidden)</span>' : ""}</td>
+    <td><input class="pname" value="${esc(r.name)}" maxlength="20" aria-label="Name" placeholder="Anonymous cub"> ${r.hidden ? '<span class="mute">(hidden)</span>' : ""}</td>
     <td>${r.best == null ? "—" : m(r.best)}</td><td>${r.days}</td><td>${when(r.at)}</td>
     <td class="pact"><label class="check"><input type="checkbox" class="plock" ${r.locked ? "checked" : ""}> Locked</label>
       <button type="button" class="btn small" data-act="rename">Save name</button>
