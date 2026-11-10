@@ -19,3 +19,15 @@ addEventListener("resize",()=>{ sceneResize(); if(SC.tg) drawTailgate(performanc
 sceneResize(); renderStatic(); renderIntro(); loadCatalog();
 { const t=new URLSearchParams(location.search).get("preview"); if(IS_LOCAL && t) previewReveal(t.toUpperCase()); }
 if(reduced) drawScene(performance.now()); else requestAnimationFrame(sceneLoop);
+
+/* A new day (New York time, like the Daily) reloads the page so the new Daily shows up, but never in the
+   middle of something: a round, its results, a Tiger Tailgate game, or the share window. */
+const nyDay=()=>{ try{ return new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()); }catch(e){ return todayKey(); } };
+const BOOT_DAY=nyDay();
+function newDayCheck(){
+  if(nyDay()===BOOT_DAY) return;
+  const busy=!$("play").hidden || !$("results").hidden || (typeof party!=="undefined" && party) || !$("sharebox").hidden;
+  if(!busy) location.reload();
+}
+setInterval(newDayCheck, 60*1000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) newDayCheck(); });

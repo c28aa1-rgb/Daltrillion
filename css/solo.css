@@ -198,6 +198,7 @@ details[open] summary::before{content:"▾ "}
 .lbl{list-style:none;margin:10px 0 0;padding:0;border:3px solid var(--ink)}
 .lbl li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:7px 12px;border-bottom:2px solid var(--ink);background:rgba(11,11,13,.35)}
 .lbl li:last-child{border-bottom:0}
+.lbl li.gap{display:block;padding:0 12px;line-height:1.2;color:var(--mute);text-align:left;background:none}
 .lbl li.me{background:rgba(242,106,27,.22);box-shadow:inset 4px 0 0 var(--orange)}
 .lbl .rk{font-family:var(--display);font-size:24px;line-height:.9;color:var(--mute)}
 .lbl .rk.p1{color:#FFD84D}.lbl .rk.p2{color:var(--sky)}.lbl .rk.p3{color:var(--orange-hi)}

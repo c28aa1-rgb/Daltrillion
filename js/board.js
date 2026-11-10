@@ -46,13 +46,17 @@ function histHTML(day,score){
   return `<div class="lbhist" aria-hidden="true">${day.hist.map((n,i)=>`<i class="${i===mine?"me":""}" style="--h:${Math.max(n?8:0,Math.round(100*n/top))}%"></i>`).join("")}</div>
     <div class="lbaxis" aria-hidden="true"><span>0 m</span><span>${meters(day.max)}</span></div>`;
 }
-function topHTML(rows,unit){
+function topHTML(rows,unit,me){
   if(!rows.length) return `<p class="mute">Nobody yet.</p>`;
   // Equal scores share a place (3, 3, 5); the earlier finish is listed first.
   const place=i=>{ let k=i; while(k>0 && rows[k-1].score===rows[i].score) k--; return k+1; };
-  return `<ol class="lbl">${rows.map((r,i)=>`<li class="${r.me?"me":""}"><span class="rk p${place(i)}">${place(i)}</span>
+  const row=(r,rk)=>`<li class="${r.me?"me":""}"><span class="rk p${rk}">${rk}</span>
     <span class="nm">${r.name?esc(r.name):'<span class="anon">Anonymous cub</span>'}${r.me?' <b class="you">you</b>':""}</span>
-    <span class="sc">${meters(r.score)}${unit&&r.days?`<small>${r.days} Dail${r.days===1?"y":"ies"}</small>`:""}</span></li>`).join("")}</ol>`;
+    <span class="sc">${meters(r.score)}${unit&&r.days?`<small>${r.days} Dail${r.days===1?"y":"ies"}</small>`:""}</span></li>`;
+  // Not in the top ten? Your own place goes underneath.
+  const mine = me && !rows.some(r=>r.me)
+    ? `<li class="gap" aria-hidden="true"><span>…</span></li>${row({me:true,name:(BOARD.data&&BOARD.data.name)||loadPrefs().name||"",score:me.score,days:me.days},me.rank)}` : "";
+  return `<ol class="lbl">${rows.map((r,i)=>row(r,place(i))).join("")}${mine}</ol>`;
 }
 function dayHTML(day,empty,label){
   if(!day) return `<p class="mute">${empty}</p>`;
@@ -60,7 +64,7 @@ function dayHTML(day,empty,label){
   return `<div class="lbhead"><b>Daily Prowl #${day.number}</b><span>${day.players} player${day.players===1?"":"s"}${label?` · ${label}`:""}</span></div>
     ${me?`<p class="lbme">You: <b>${ordinal(me.rank)}</b> with ${meters(me.score)}${me.beat!=null?` · farther than ${me.beat}% of players`:""}</p>`:""}
     ${histHTML(day,me?me.score:null)}
-    ${topHTML(day.top)}`;
+    ${topHTML(day.top,false,me&&{score:me.score,rank:me.rank})}`;
 }
 function renderBoard(){
   const b=BOARD.data, t=BOARD.tab;
@@ -72,7 +76,7 @@ function renderBoard(){
     const a=b.allTime, me=a.me;
     $("lbbody").innerHTML=`<div class="lbhead"><b>Best single Daily</b><span>${a.players} player${a.players===1?"":"s"} all time</span></div>
       ${me?`<p class="lbme">Your best: <b>${meters(me.best)}</b> · ${ordinal(me.rank)} of ${a.players} · ${me.days} Dail${me.days===1?"y":"ies"} played</p>`:""}
-      ${topHTML(a.top,true)}`;
+      ${topHTML(a.top,true,me&&{score:me.best,rank:me.rank,days:me.days})}`;
   }
 }
 async function openBoard(tab){
@@ -116,3 +120,13 @@ function autoName(input, msg, done){
 }
 const lbNameReset=autoName($("lbname"),$("lbnamemsg"),n=>n?`Saved. You're on the board as ${n}.`:"Saved. You'll show up as Anonymous cub.");
 $("res-board").addEventListener("click",e=>{ if(e.target.id==="rbopen") openBoard("today"); });
+
+/* Keep the leaderboard fresh without reloading: every 5 minutes while the page is on screen, and
+   straight away when you come back to the tab. */
+function refreshBoardViews(){
+  if(document.hidden) return;
+  if(!$("intro").hidden){ BOARD.at=0; renderLbLine(); }
+  else if(!$("board").hidden) loadBoard(true).then(renderBoard);
+}
+setInterval(refreshBoardViews, 5*60*1000);
+document.addEventListener("visibilitychange", refreshBoardViews);
