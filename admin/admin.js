@@ -566,21 +566,36 @@ $("ovcols").addEventListener("click", (e) => {
 async function loadPlayers() {
   const rows = await get("board");
   if (!Array.isArray(rows)) return;
+  const m = (pts) => `${(pts * 4).toLocaleString()} m`;
   $("playerrows").innerHTML = rows.map((r) => `<tr class="${r.hidden ? "hiddenrow" : ""}" data-player="${esc(r.player)}">
-    <td><input class="pname" value="${esc(r.name)}" maxlength="16" aria-label="Name"> ${r.hidden ? '<span class="mute">(hidden)</span>' : ""}</td>
-    <td>${r.best == null ? "—" : `${(r.best * 4).toLocaleString()} m`}</td><td>${r.days}</td><td>${when(r.at)}</td>
+    <td><input class="pname" value="${esc(r.name)}" maxlength="16" aria-label="Name" placeholder="Anonymous cub"> ${r.hidden ? '<span class="mute">(hidden)</span>' : ""}</td>
+    <td>${r.best == null ? "—" : m(r.best)}</td><td>${r.days}</td><td>${when(r.at)}</td>
     <td class="pact"><label class="check"><input type="checkbox" class="plock" ${r.locked ? "checked" : ""}> Locked</label>
-      <button type="button" class="btn small" data-act="rename">Save</button>
+      <button type="button" class="btn small" data-act="rename">Save name</button>
       <button type="button" class="btn small ${r.hidden ? "" : "danger"}" data-act="hide" data-hide="${r.hidden ? 0 : 1}">${r.hidden ? "Show name" : "Hide name"}</button>
+      ${r.scores.length ? `<span class="pscore">
+        <select class="pday" aria-label="Which Daily">${r.scores.map((x) => `<option value="${x.day}" data-m="${x.score * 4}">${fmtDay(x.day)}: ${m(x.score)}</option>`).join("")}</select>
+        <input class="pm" type="number" min="0" max="2800" step="4" value="${r.scores[0].score * 4}" aria-label="New distance in meters"> m
+        <button type="button" class="btn small" data-act="score">Change score</button></span>` : ""}
       <span class="msg"></span></td></tr>`).join("")
-    || `<tr><td colspan="5" class="mute">Nobody has added a name yet.</td></tr>`;
+    || `<tr><td colspan="5" class="mute">Nobody has a name or a Daily score yet.</td></tr>`;
 }
+$("playerrows").addEventListener("change", (e) => {
+  if (!e.target.classList.contains("pday")) return;
+  const o = e.target.selectedOptions[0]; e.target.closest("tr").querySelector(".pm").value = o.dataset.m;
+});
 $("playerrows").addEventListener("click", async (e) => {
   const b = e.target.closest("button[data-act]"); if (!b) return;
   const tr = b.closest("tr"), msg = tr.querySelector(".msg"), player = tr.dataset.player;
-  const r = b.dataset.act === "hide"
-    ? await post("board/hide", { player, hidden: b.dataset.hide === "1" })
-    : await post("board/rename", { player, name: tr.querySelector(".pname").value, locked: tr.querySelector(".plock").checked });
+  let r;
+  if (b.dataset.act === "score") {
+    const meters = Number(tr.querySelector(".pm").value), day = tr.querySelector(".pday").value;
+    if (!Number.isFinite(meters) || meters < 0 || meters > 2800) { msg.className = "msg err"; msg.textContent = "Use 0 to 2,800 m."; return; }
+    const pts = Math.round(meters / 4), name = tr.querySelector(".pname").value || "this player";
+    if (!confirm(`Set ${name}'s score for ${fmtDay(day)} to ${(pts * 4).toLocaleString()} m? The leaderboard changes right away and it's logged in Activity.`)) return;
+    r = await post("board/score", { player, day, score: pts });
+  } else if (b.dataset.act === "hide") r = await post("board/hide", { player, hidden: b.dataset.hide === "1" });
+  else r = await post("board/rename", { player, name: tr.querySelector(".pname").value, locked: tr.querySelector(".plock").checked });
   if (!r.ok) { msg.className = "msg err"; msg.textContent = r.message || "Couldn't change that."; return; }
   loadPlayers();
 });
