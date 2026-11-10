@@ -9,13 +9,24 @@ function tgGeometry(){
   const chatCss = innerWidth>=900 && !$("tgchat").classList.contains("off") ? 320 : 0;
   TG.chatW=chatCss;
   const aw=(innerWidth-chatCss)/s;
-  const cx=aw/2, cy=H*.63;
-  const rx=Math.min(aw*.42, 175), ry=Math.min(H*.23, 64);
+  const cx=aw/2;
+  let cy=H*.63, rx=Math.min(aw*.42, 175), ry=Math.min(H*.23, 64);
+  // Keep the circle between the question card and the answer box, so nobody's name or lives hide behind
+  // them: room above the top rocks for an animal, below the bottom ones for its name and hearts.
+  const dock=$("tgdock"), card=$("tgprompt");
+  if(dock && !dock.hidden){
+    const top=(card && !card.hidden ? card.getBoundingClientRect().bottom : 0)/s + 46/s;
+    const bottom=dock.getBoundingClientRect().top/s - 46/s;
+    if(bottom>top){
+      ry=Math.max(18, Math.min(ry, (bottom-top)/2));
+      cy=Math.min(Math.max(cy, top+ry), bottom-ry);
+    }
+  }
   return {cx,cy,rx,ry,W,H,s};
 }
 function buildTgBg(){
   const {W,H,cx,cy,rx,ry}=tgGeometry();
-  const key=[W,H,Math.round(cx),Math.round(cy)].join(","); if(TG.bgKey===key && TG.bg) return; TG.bgKey=key;
+  const key=[W,H,Math.round(cx),Math.round(cy),Math.round(ry)].join(","); if(TG.bgKey===key && TG.bg) return; TG.bgKey=key;
   const c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d");
   g.fillStyle="#08170F"; g.fillRect(0,0,W,H);
   // distant canopy bands

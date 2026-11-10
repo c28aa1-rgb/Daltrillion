@@ -11,8 +11,15 @@ const meters=pts=>`${fmt(pts*M_PER_PT)} m`;
 async function loadBoard(force){
   if(!force && BOARD.data && Date.now()-BOARD.at<15000) return BOARD.data;
   const b=await api("board?player="+encodeURIComponent(playerId()||""));
-  if(b && !b.error){ BOARD.data=b; BOARD.at=Date.now(); }
+  if(b && !b.error){ BOARD.data=b; BOARD.at=Date.now(); syncName(b); }
   return BOARD.data;
+}
+/* One name for the leaderboard and Tiger Tailgate. The server's copy wins (an admin may have renamed you);
+   a name you only ever typed into Tailgate gets sent to the board once. */
+function syncName(b){
+  const pr=loadPrefs();
+  if(b.name && b.name!==pr.name) savePrefs({...pr,name:b.name});
+  else if(!b.name && pr.name && !BOARD.synced){ BOARD.synced=true; saveBoardName(pr.name); }
 }
 /* Names follow the same rules as the casino game (checked on the server): 2-16 letters, numbers
    and . _ ' -, nothing rude, nobody else's. Only a name the server accepted is remembered. */
@@ -71,7 +78,7 @@ function renderBoard(){
 async function openBoard(tab){
   BOARD.tab=tab||"today";
   show("board");
-  $("lbname").value=loadPrefs().name||""; $("lbnamemsg").textContent="Only your Daily Prowl scores go on the board. Same name as Tiger Tailgate.";
+  $("lbname").value=loadPrefs().name||""; lbNameReset(); $("lbnamemsg").textContent="Only your Daily Prowl scores go on the board. Same name as Tiger Tailgate. It saves as you type.";
   $("lbbody").innerHTML=`<p class="mute">Loading…</p>`;
   await loadBoard(true); renderBoard();
 }
@@ -87,23 +94,25 @@ async function renderBoardCard(){
     ${histHTML(d,me.score)}
     <form class="lbrow" id="rbname" autocomplete="off">
       <input class="ex-search" id="rbnamein" maxlength="16" minlength="2" placeholder="Your name on the board" value="${esc(named)}" spellcheck="false" aria-label="Your name on the board">
-      <button class="pxbtn navy small" type="submit">${named?"Update":"Add name"}</button>
       <button class="pxbtn navy small" type="button" id="rbopen">Leaderboard</button>
     </form>
-    <p class="mute small" id="rbmsg" style="margin:0">${named?`On the board as ${esc(named)}.`:"Without a name you show up as Anonymous cub."}</p>`;
+    <p class="mute small" id="rbmsg" style="margin:0">${named?`On the board as ${esc(named)}.`:"Without a name you show up as Anonymous cub. It saves as you type."}</p>`;
   box.hidden=false;
+  autoName($("rbnamein"),$("rbmsg"),n=>n?`On the board as ${n}.`:"You'll show up as Anonymous cub.")();
 }
 
 $("lbopen").addEventListener("click",()=>openBoard(BOARD.data&&!BOARD.data.today&&BOARD.data.last?"last":"today"));
 document.querySelector(".lbtabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-lb]"); if(!b) return; BOARD.tab=b.dataset.lb; renderBoard(); });
-$("lbnameform").addEventListener("submit",async e=>{ e.preventDefault();
-  const r=await saveBoardName($("lbname").value);
-  $("lbnamemsg").textContent = nameResult(r,n=>n?`Saved. You're on the board as ${n}.`:"Saved. You'll show up as Anonymous cub.");
-  if(r&&r.ok){ $("lbname").value=r.name; await loadBoard(true); renderBoard(); }
-});
-$("res-board").addEventListener("submit",async e=>{ e.preventDefault();
-  const r=await saveBoardName($("rbnamein").value);
-  $("rbmsg").textContent = nameResult(r,n=>n?`On the board as ${n}.`:"You'll show up as Anonymous cub.");
-  if(r&&r.ok) $("rbnamein").value=r.name;
-});
+/* Names save themselves: a moment after you stop typing, when you leave the box, or on Enter. */
+function autoName(input, msg, done){
+  let timer=0, last=null;
+  const go=async()=>{ clearTimeout(timer); const v=input.value.trim(); if(v===last) return; last=v;
+    msg.textContent="Saving…"; const r=await saveBoardName(v);
+    msg.textContent=nameResult(r,done); if(r&&r.ok){ input.value=r.name; last=r.name; } else last=null; };
+  input.addEventListener("input",()=>{ clearTimeout(timer); timer=setTimeout(go,900); });
+  input.addEventListener("change",go);
+  input.form.addEventListener("submit",e=>{ e.preventDefault(); go(); });
+  return ()=>{ last=input.value.trim(); };   // call after filling the box in, so it isn't re-saved
+}
+const lbNameReset=autoName($("lbname"),$("lbnamemsg"),n=>n?`Saved. You're on the board as ${n}.`:"Saved. You'll show up as Anonymous cub.");
 $("res-board").addEventListener("click",e=>{ if(e.target.id==="rbopen") openBoard("today"); });

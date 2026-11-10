@@ -56,8 +56,8 @@
           <summary id="catsum">Categories</summary>
           <div class="catmenu" id="catmenu"></div>
         </details>
-        <span class="flabel">Seconds per turn</span>
-        <div class="seg" id="tgtimeseg" style="flex-wrap:wrap"><button type="button" data-s="3">3s</button><button type="button" data-s="5">5s</button><button type="button" data-s="6">6s</button><button type="button" data-s="8">8s</button><button type="button" data-s="10">10s</button><button type="button" data-s="15">15s</button></div>
+        <label class="flabel" for="tgtime">Seconds per turn: <b id="tgtimeval">10s</b></label>
+        <input class="tgtime" id="tgtime" type="range" min="2" max="20" step="1" value="10">
         <span class="flabel">Lives per animal</span>
         <div class="seg" id="tgseg"><button type="button" data-n="1">♥</button><button type="button" data-n="2">♥♥</button><button type="button" data-n="3">♥♥♥</button></div>
         <button class="pxbtn orange" id="tgstart" type="button">▸ Start the tailgate ◂</button>
@@ -101,7 +101,7 @@
   </aside>
 
   <div class="tgdock px" id="tgdock" hidden>
-    <span class="tghearts" id="tghearts">♥2</span>
+    <span class="tghearts" id="tghearts">♥2</span><small class="tgnx" id="tgnx" aria-live="polite"></small>
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
       <form class="entry" id="tgform" autocomplete="off">
         <label class="sr-only" for="tginput">Your answer</label>
@@ -243,7 +243,7 @@
         <div id="lbbody" aria-live="polite"></div>
         <form class="lbname" id="lbnameform" autocomplete="off">
           <label class="flabel" for="lbname">Your name on the board</label>
-          <div class="lbrow"><input class="ex-search" id="lbname" maxlength="16" placeholder="blank = Anonymous" spellcheck="false"><button class="pxbtn navy small" type="submit">Save</button></div>
+          <div class="lbrow"><input class="ex-search" id="lbname" maxlength="16" placeholder="blank = Anonymous" spellcheck="false"></div>
           <p class="mute small" id="lbnamemsg" style="margin:0">Only your Daily Prowl scores go on the board. Same name as Tiger Tailgate.</p>
         </form>
       </div>

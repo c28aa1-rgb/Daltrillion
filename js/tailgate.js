@@ -25,6 +25,8 @@ const myName=()=>clip($("pname").value.trim(),16);
 async function enterParty(code, asHost){
   const name=myName(); if(!name){ perr("Pick a name first."); $("pname").focus(); return; }
   const pr=loadPrefs(); savePrefs({...pr,name,skin:pSkin});
+  // Same name on the leaderboard. Tailgate still starts if the board says no (taken, rude, locked).
+  if(name!==pr.name) saveBoardName(name).then(r=>{ if(r&&!r.ok&&r.message&&party) sys(`Leaderboard name not changed: ${r.message}`); });
   perr("Connecting…");
   let conn;
   try{ conn=await connectRoom(code,asHost); }
@@ -94,7 +96,11 @@ function setTyping(v){
 }
 /* Send what was typed; the server decides. take=true accepts the server's own "Did you mean". */
 function tgSubmit(take){
-  const st=party&&party.st; if(!st||st.phase!=="play"||st.holder!==party.me) return;
+  const st=party&&party.st; if(!st) return;
+  if(st.phase!=="play"||st.holder!==party.me){
+    if($("tginput").value.trim()) $("tgmsg").textContent = st.phase==="ready" ? "Hold it. Press Enter once the clock starts on your turn." : "Not your turn yet. It'll still be here when it is.";
+    return;
+  }
   if(party.pending && party.pending.seq===st.seq) return;
   const input=$("tginput").value.trim();
   if(!take && party.suggestion && input===party.suggestion.typed) take=true;
@@ -108,9 +114,9 @@ function onResult(m){
   party.pending=null; $("tgsend").disabled=false;
   if(m.stale) return;
   if(m.ok){
-    sfx("tier",m.tier); setTyping("");
-    $("tginput").disabled=true; $("tgsend").disabled=true; $("tgdym").hidden=true; party.suggestion=null;
-    $("tgmsg").textContent=m.fixed?`Autocorrected to ${m.name}. Passing…`:"Passing…";
+    sfx("tier",m.tier); setTyping(""); $("tginput").value="";
+    $("tgdym").hidden=true; party.suggestion=null;
+    $("tgmsg").textContent=(m.fixed?`Autocorrected to ${m.name}. `:"")+(m.life?"Rare answers paid off: +1 life! ":"")+"Passing…";
     return;
   }
   const text = m.used ? `${m.used} was already said. Another!`
@@ -185,11 +191,12 @@ function render(force){
   if(st.phase==="lobby"){
     const h=isOwner(); $("tghostctl").hidden=!h; $("tgwait").hidden=h; $("tgwait").textContent="Waiting for the host to start…";
     [...$("tgseg").children].forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.n===st.hearts)));
-    [...$("tgtimeseg").children].forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.s===(st.turnSec||6))));
+    if(document.activeElement!==$("tgtime")) $("tgtime").value=st.turnSec||10;
+    $("tgtime").disabled=!h; $("tgtimeval").textContent=`${st.turnSec||10}s`;
     renderCatPicker();
     const n=(st.seat||[]).filter(id=>st.pl[id]&&!st.pl[id].gone).length;
     $("tgstart").disabled=n<2;
-    $("tgstarthint").textContent = !(st.cats&&st.cats.length) ? "Pick at least one category." : n>=2 ? `${n} animals on the rocks. ${(st.turnSec||6)} seconds a turn.` : "Share the code. You need at least 2 players.";
+    $("tgstarthint").textContent = !(st.cats&&st.cats.length) ? "Pick at least one category." : n>=2 ? `${n} animals on the rocks. ${(st.turnSec||10)} seconds a turn.` : "Share the code. You need at least 2 players.";
     if(!(st.cats&&st.cats.length)) $("tgstart").disabled=true;
     return;
   }
@@ -200,21 +207,27 @@ function render(force){
     $("tgcatlbl").textContent=`Category ${st.catNo} · ${cat.label}`;
     $("tgdock").classList.toggle("yours", st.phase==="play"&&st.holder===party.me);
     $("tgq").textContent=cat.prompt;
-    $("tglast").innerHTML = st.last ? `${esc(P(st.last.by).n)} passed with <b>${esc(st.last.n)}</b> ${chip(st.last.t)}` : `▾ any answer passes · ${(st.turnSec||6)} seconds each · no repeats ▾`;
+    $("tglast").innerHTML = st.last ? `${esc(P(st.last.by).n)} passed with <b>${esc(st.last.n)}</b> ${chip(st.last.t)}` : `▾ any answer passes · ${(st.turnSec||10)} seconds each · no repeats ▾`;
     $("tgused").innerHTML = st.used.length ? `<span class="flabel">Already said</span> ${st.used.map(n=>`<span>${esc(n)}</span>`).join(" · ")}` : "";
+    layoutSeats();   // again, now the card and the answer box have their final size
     const me=st.pl[party.me]; const mine=st.phase==="play"&&st.holder===party.me;
     $("tghearts").textContent = me ? `♥${me.h}` : "♥–";
+    $("tghearts").title = me ? `${me.h} ${me.h===1?"life":"lives"}. Every 3rd rare answer (Rare Stripe or better) wins one back, up to ${st.hearts}.` : "";
+    $("tgnx").textContent = me && st.hearts>1 ? `${me.nx||0}/3 rare` : "";
     if(fresh){
       party.pending=null; $("tgdym").hidden=true; party.suggestion=null;
-      $("tginput").value=""; setTyping("");
-      if(mine){ sfx("turn"); $("tginput").disabled=false; $("tgsend").disabled=false; $("tginput").placeholder=`your turn! ${(st.turnSec||6)} seconds, everyone sees you typing…`; $("tgmsg").textContent="The lion's pointing at you. Answer fast!"; $("tginput").focus(); }
+      // You can type any time; what you typed stays until it's sent or the category changes.
+      if(party.inputCat!==st.catNo){ party.inputCat=st.catNo; $("tginput").value=""; }
+      if(mine) setTyping($("tginput").value);
+      const spec=!me||me.spec, out=me&&me.out, playing=me&&!spec&&!out;
+      $("tginput").disabled=!playing; $("tgsend").disabled=!mine;
+      if(mine){ sfx("turn"); $("tginput").placeholder=`your turn! ${(st.turnSec||10)} seconds, everyone sees you typing…`; $("tgmsg").textContent="The lion's pointing at you. Answer fast!"; $("tginput").focus(); const v=$("tginput").value; $("tginput").setSelectionRange(v.length,v.length); }
       else {
-        $("tginput").disabled=true; $("tgsend").disabled=true;
-        const spec=!me||me.spec, out=me&&me.out;
-        $("tginput").placeholder = st.phase==="ready" ? "get ready… the clock hasn't started" : st.phase==="pop" ? "time's up…" : spec ? "you're in next game · watching…" : out ? "you're out · watching…" : `${P(st.holder).n} is up…`;
+        $("tginput").placeholder = spec ? "you're in next game · watching…" : out ? "you're out · watching…" : st.phase==="ready" ? "get ready… you can start typing" : st.phase==="pop" ? "time's up…" : `${P(st.holder).n} is up · type yours now`;
         $("tgmsg").textContent = st.phase==="pop" ? "" : st.phase==="ready" ? (st.holder===party.me?"▸ You go first. Get ready!":`▸ ${P(st.holder).n} goes first`) : `▸ ${P(st.holder).n} is up`;
       }
     }
+    if(st.gain && party.lastGain!==st.gain.at){ party.lastGain=st.gain.at; if(st.gain.id!==party.me) sys(`${P(st.gain.id).n} earned a life back with rare answers.`); }
     if(st.phase==="pop" && st.pop){
       const p=P(st.pop.id);
       $("tgringtext").textContent = st.pop.out ? `${p.n} is out!` : `${p.n} loses a life`;
@@ -300,7 +313,8 @@ $("pjoin-form").addEventListener("submit",e=>{ e.preventDefault(); const c=$("pc
 $("skinform").addEventListener("submit",e=>{ e.preventDefault(); tryCode(); });
 $("tgseg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b||!isOwner()) return; sendRoom({t:"settings",hearts:+b.dataset.n}); });
 $("tgstart").addEventListener("click",()=>sendRoom({t:"start"}));
-$("tgtimeseg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b||!isOwner()) return; sendRoom({t:"settings",turnSec:+b.dataset.s}); });
+$("tgtime").addEventListener("input",e=>{ $("tgtimeval").textContent=`${e.target.value}s`; });
+$("tgtime").addEventListener("change",e=>{ if(isOwner()) sendRoom({t:"settings",turnSec:+e.target.value}); });
 $("catmenu").addEventListener("change",e=>{ const c=e.target.dataset&&e.target.dataset.c; if(!c||!isOwner()) return; const set=new Set(party.st.cats||[]);
   if(e.target.checked) set.add(c); else set.delete(c); sendRoom({t:"settings",cats:[...set]}); });
 $("catmenu").addEventListener("click",e=>{ const b=e.target.closest("button[data-all]"); if(!b||!isOwner()) return;

@@ -126,3 +126,8 @@
   .tb{font-size:12px;max-width:130px}
   .tl .tn{font-size:11px}
 }
+
+/* turn length slider (2–20 s) and the rare-answer counter next to your lives */
+.tgtime{width:100%;accent-color:var(--orange);cursor:pointer}
+.tgtime:disabled{cursor:default;opacity:.7}
+.tgnx{align-self:center;font-family:var(--caps);font-size:10px;letter-spacing:.06em;color:var(--mute);white-space:nowrap;margin-left:-6px}
