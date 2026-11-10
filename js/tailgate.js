@@ -212,7 +212,7 @@ function render(force){
     layoutSeats();   // again, now the card and the answer box have their final size
     const me=st.pl[party.me]; const mine=st.phase==="play"&&st.holder===party.me;
     $("tghearts").textContent = me ? `♥${me.h}` : "♥–";
-    $("tghearts").title = me ? `${me.h} ${me.h===1?"life":"lives"}. Every 3rd rare answer (Rare Stripe or better) wins one back, up to ${st.hearts}.` : "";
+    $("tghearts").title = me ? `${me.h} ${me.h===1?"life":"lives"}. Every 3rd rare answer (Rare Stripe or better, or any classmate) wins one back, up to ${st.hearts}.` : "";
     $("tgnx").textContent = me && st.hearts>1 ? `${me.nx||0}/3 rare` : "";
     if(fresh){
       party.pending=null; $("tgdym").hidden=true; party.suggestion=null;
