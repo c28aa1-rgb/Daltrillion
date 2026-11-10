@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Connect to Daltrillion</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#071330;color:#FBFBF8;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px;box-sizing:border-box}
+  main{max-width:440px;width:100%;background:#0A1A3F;border:3px solid #0B0B0D;box-shadow:inset 0 0 0 2px #25458C;padding:24px}
+  h1{font-size:22px;margin:0 0 12px} p{margin:0 0 12px;color:#C9D4EC} b{color:#FBFBF8}
+  .logo{font-weight:800;letter-spacing:.04em;margin-bottom:14px;color:#FF9A4D}
+  .gbtn{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;font:500 15px system-ui;color:#1f1f1f;background:#fff;border:1px solid #747775;border-radius:4px;cursor:pointer}
+  .gbtn:hover{background:#f2f2f2}
+  .no{font:600 14px system-ui;background:none;border:0;color:#A9C6FF;text-decoration:underline;cursor:pointer;padding:0;margin-left:14px}
+  .err{color:#FF8A73} [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="logo">DALTRILLION</div>
+  <h1>Sign in to connect</h1>
+  <p id="msg">Sign in with your Google account. Only Daltrillion admins can connect an app.</p>
+  <div>
+    <button class="gbtn" id="signin" type="button" hidden>
+      <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      <span id="signinlbl">Sign in with Google</span></button>
+    <button class="no" id="cancel" type="button" hidden>Cancel</button>
+  </div>
+  <p class="err" id="err" role="alert" style="margin-top:12px"></p>
+</main>
+<script>window.DALTRILLION_SERVER="https://daltrillion.daltrillion.workers.dev";</script>
+<!-- server address goes here in the hosted copy (tools/build-pages.mjs) -->
+<script>
+/* Step 3 of connecting Claude or ChatGPT (see server/src/connect.js): sign in with Google, let the
+   server check you're an admin, then send the browser back to the server to finish. The server
+   address is fixed by the page itself, never taken from the link, so this page can't be pointed
+   at anyone else's server to hand them your sign-in. */
+(function () {
+  const SERVER = (window.DALTRILLION_SERVER || location.origin).replace(/\/$/, "");
+  const SDK = "https://www.gstatic.com/firebasejs/12.6.0";
+  const $ = (id) => document.getElementById(id);
+  const state = new URLSearchParams(location.search).get("state") || "";
+  const back = (params) => { location.href = `${SERVER}/connect/done?state=${encodeURIComponent(state)}&${params}`; };
+  let fb = null;
+
+  async function finish(user) {
+    $("err").textContent = ""; $("msg").textContent = `Checking ${user.email}…`;
+    const res = await fetch(`${SERVER}/connect/verify`, {
+      method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + await user.getIdToken() },
+      body: JSON.stringify({ state }),
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    if (res && res.ok && data.code) { $("msg").textContent = `Signed in as ${data.email}. Finishing…`; back("code=" + encodeURIComponent(data.code)); return; }
+    $("msg").textContent = "Sign in with your Google account. Only Daltrillion admins can connect an app.";
+    $("err").textContent = res && res.status === 403 && data.error === "not_admin" ? `${data.email || user.email} isn't a Daltrillion admin. Try a different account.` : "Couldn't reach the server. Try again.";
+    $("signinlbl").textContent = "Use a different account";
+  }
+
+  async function signIn() {
+    const { GoogleAuthProvider, signInWithPopup, signOut } = fb.lib;
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    try {
+      if (fb.auth.currentUser) await signOut(fb.auth);
+      await finish((await signInWithPopup(fb.auth, provider)).user);
+    } catch (e) {
+      const code = (e && e.code) || "";
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+      $("err").textContent = code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this page and try again." : "Couldn't sign in. Try again.";
+    }
+  }
+
+  (async function start() {
+    if (!state) { $("msg").textContent = "This page is opened by Claude or ChatGPT when you connect Daltrillion. Start from there."; return; }
+    $("cancel").hidden = false;
+    $("cancel").onclick = () => back("error=access_denied");
+    try {
+      const cfg = (await (await fetch(`${SERVER}/admin/api/config`)).json()).firebase;
+      const [{ initializeApp }, lib] = await Promise.all([import(`${SDK}/firebase-app.js`), import(`${SDK}/firebase-auth.js`)]);
+      fb = { lib, auth: lib.getAuth(initializeApp(cfg)) };
+    } catch { $("err").textContent = "Couldn't load Google sign-in. Check your connection and reload."; return; }
+    $("signin").hidden = false;
+    $("signin").onclick = signIn;
+  })();
+})();
+</script>
+</body>
+</html>

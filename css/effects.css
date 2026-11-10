@@ -1,0 +1,60 @@
+/* shared polish */
+.rib{display:inline-block;align-self:flex-start;padding:3px 16px 3px 14px;background:repeating-linear-gradient(-58deg,var(--orange) 0 10px,var(--orange-hi) 10px 15px);color:var(--ink)!important;border:2px solid var(--ink);
+  font-weight:400;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 50%,100% 100%,0 100%);animation:ribbonIn .45s steps(5) both;transform-origin:left center;font-family:var(--caps)}
+.rib.blue{background:repeating-linear-gradient(-58deg,var(--blue) 0 10px,#3D78F0 10px 15px);color:var(--white)!important}
+.wavy{display:inline-flex;flex-wrap:wrap;justify-content:center;row-gap:0}
+.wavy .ch{display:inline-block;animation:drop .6s steps(6) both, wave 2.4s steps(4) infinite;animation-delay:calc(var(--i)*55ms), calc(800ms + var(--i)*110ms)}
+.wavy .ch.alt{color:var(--orange-hi)}
+.wavy .sp{display:inline-block;width:.32em}
+.enter{animation:cardIn .45s steps(5) both}
+.pxbtn{transition:transform .1s steps(2)}
+.pxbtn:hover:not(:disabled){transform:translate(-2px,-2px)}
+.pxbtn:active:not(:disabled){transform:translate(1px,1px)}
+.pxbtn.orange:not(:disabled){background-image:linear-gradient(100deg,transparent 0 40%,rgba(255,255,255,.35) 45%,transparent 50%);background-size:250% 100%;background-position:150% 0}
+.pxbtn.orange:hover:not(:disabled){animation:btnShine .6s steps(6)}
+@keyframes btnShine{from{background-position:150% 0}to{background-position:-50% 0}}
+@keyframes shakeX{0%,100%{transform:none}20%{transform:translateX(-8px) rotate(-2deg)}40%{transform:translateX(8px) rotate(2deg)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes turnGlow{0%,100%{box-shadow:inset 0 0 0 2px var(--edge),inset 0 5px 0 2px rgba(169,198,255,.10)}50%{box-shadow:inset 0 0 0 3px #FFD84D,inset 0 0 18px rgba(255,216,77,.35)}}
+.plaque.enter .hint,.tgpanel.enter .hint{animation:cardIn .45s steps(5) .15s both}
+.big{display:flex;align-items:baseline}
+.zone.wavy{justify-content:flex-start}
+.row.enter{animation-delay:calc(var(--r)*90ms + 200ms)}
+.tglog p:last-child{animation:cardIn .3s steps(3) both}
+.tgring{animation:shakeX .5s steps(5)}
+.tgdock.yours{animation:turnGlow 1s steps(2) infinite}
+.tgdock.yours .tghearts{animation:hop .5s steps(2) infinite}
+#tglobby .pcode.wavy{justify-content:flex-start}
+.ptitle.wavy{justify-content:flex-start}
+.ptitle .ch:nth-child(-n+5){color:var(--orange-hi)}
+.cubs .cub{animation:cardIn .4s steps(4) both;animation-delay:calc(var(--k,0)*60ms)}
+.cub:hover canvas{animation:hop .4s steps(3)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:4;overflow:hidden}
+#confetti i{position:absolute;top:-12px;width:8px;height:8px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.tgwin.wavy{justify-content:center}
+.banner b.wavy{display:inline-flex}
+
+/* get ready, emotes, celebrate */
+.tgready{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var(--navy);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px #FFD84D}
+.tgready b{font-family:var(--display);font-weight:400;font-size:64px;line-height:.8;color:#FFD84D;min-width:1ch;text-align:center;animation:pop .5s steps(4) infinite}
+.tgready span{display:flex;flex-direction:column;font-weight:700;font-size:15px}
+.tgready em{font-style:normal;font-family:var(--display);font-weight:400;font-size:32px;line-height:.9;text-transform:uppercase;color:var(--white)}
+.tgready i{font-style:normal;color:var(--orange-hi)}
+canvas.emo{width:32px;height:32px;image-rendering:pixelated;vertical-align:middle}
+.tglog canvas.emo{width:36px;height:36px}
+.emobtn{font-size:16px;padding:6px 10px}
+.emogrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px;background:var(--ink);border:3px solid var(--edge)}
+.emogrid button{background:var(--navy-2);border:2px solid var(--ink);padding:4px;display:grid;place-items:center}
+.emogrid button:hover{background:var(--edge);transform:translate(-1px,-1px)}
+.emogrid canvas.emo{width:40px;height:40px}
+.temo{position:absolute;transform:translate(-50%,-100%);z-index:3;padding:4px;background:rgba(10,26,63,.94);border:2px solid var(--ink);box-shadow:inset 0 0 0 1px var(--edge);animation:emoUp 2.8s steps(14) forwards}
+.temo canvas.emo{width:48px;height:48px}
+@keyframes emoUp{0%{transform:translate(-50%,-80%) scale(.6)}10%{transform:translate(-50%,-100%) scale(1.1)}20%{transform:translate(-50%,-100%) scale(1)}85%{transform:translate(-50%,-130%)}100%{transform:translate(-50%,-150%);visibility:hidden}}
+.celebrate{font-size:20px;padding:16px 28px;animation:celPulse 1s steps(2) infinite}
+@keyframes celPulse{50%{box-shadow:inset 0 -5px 0 rgba(0,0,0,.28),0 0 0 4px #FFD84D}}
+#cel{position:fixed;inset:0;z-index:40;background:#0A1A3F;display:grid;place-items:center}
+#celcv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.celtext{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:38vh;pointer-events:none;text-align:center;padding:0 16px}
+.celdunk{font-family:var(--display);font-size:clamp(48px,10vw,96px);line-height:.85;text-transform:uppercase;color:#FFD84D;text-shadow:4px 4px 0 var(--orange),8px 8px 0 var(--ink);transform:rotate(-4deg)}
+.celwin{font-family:var(--display);font-size:clamp(36px,7vw,64px);line-height:.9;text-transform:uppercase;color:var(--white);text-shadow:3px 3px 0 var(--orange),6px 6px 0 var(--ink)}
+#celskip{position:absolute;right:max(16px, env(safe-area-inset-right, 0px));bottom:max(16px, env(safe-area-inset-bottom, 0px));z-index:2}

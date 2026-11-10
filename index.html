@@ -2,24 +2,342 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Daltrillion has moved</title>
-<noscript><meta http-equiv="refresh" content="0; url=https://daltrillion.web.app/"></noscript>
-<link rel="canonical" href="https://daltrillion.web.app/">
-<script>
-  // Keep the rest of the address: /Daltrillion/admin/ goes to daltrillion.web.app/admin/.
-  var rest = location.pathname.replace(/^\/Daltrillion/i, "") || "/";
-  // The game's saved player id, name and today's progress live in this address's storage; carry them over
-  // in the # part of the link (never sent to a server). The new site reads it once and removes it.
-  var hash = location.hash, carry = {};
-  try {
-    ["daltrillion-player", "daltrillion-tailgate", "ivans-prowl-v1"].forEach(function (k) { var v = localStorage.getItem(k); if (v !== null) carry[k] = v; });
-    if (!/^\/admin/.test(rest) && Object.keys(carry).length)
-      hash = "#carry=" + btoa(unescape(encodeURIComponent(JSON.stringify(carry)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  } catch (e) {}
-  location.replace("https://daltrillion.web.app" + rest + location.search + hash);
-</script>
-<style>body{margin:0;background:#0d1b3d;color:#f3ead2;font:18px/1.5 system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center}a{color:#ffc94d}</style>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Daltrillion</title>
+<meta name="description" content="The Dalton rare-answer game. Name the answer nobody else thinks of and send Ivan deeper into the jungle.">
+<meta name="theme-color" content="#0A1A3F">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-title" content="Daltrillion">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Daltrillion">
+<meta property="og:description" content="The Dalton rare-answer game. Rarer answers send Ivan farther.">
+<meta property="og:image" content="assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Pixelify+Sans:wght@400..700&family=Silkscreen&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<!-- Order matters: later files override earlier ones. -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/solo.css">
+<link rel="stylesheet" href="css/party.css">
+<link rel="stylesheet" href="css/effects.css">
+<link rel="stylesheet" href="css/tailgate.css">
+<link rel="stylesheet" href="css/responsive.css">
 </head>
-<body><p>Daltrillion has moved to <a href="https://daltrillion.web.app/">daltrillion.web.app</a>.</p></body>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div id="confetti" aria-hidden="true"></div>
+<div id="labels" aria-hidden="true"></div>
+<div id="cel" hidden role="dialog" aria-label="Celebration">
+  <canvas id="celcv" aria-hidden="true"></canvas>
+  <div class="celtext"><div class="celdunk" id="celdunk" hidden>Slam dunk!</div><div class="celwin" id="celwin"></div></div>
+  <button class="pxbtn navy small" id="celskip" type="button">Skip</button>
+</div>
+<div id="tg" hidden>
+  <div id="tglabels" aria-hidden="true"></div>
+  <div class="tghud">
+    <div class="tgbox px"><span class="flabel">Tailgate</span><b id="tgcode"></b></div>
+    <div class="tgmid"><span class="label" id="tgcat"></span><div class="tgclock" id="tgclock" hidden><b id="tgsecs">0</b><span>sec left</span></div></div>
+    <div class="tgbox px right"><span class="flabel" id="tgstandlbl">Standing</span><b id="tgstand" class="pink"></b></div>
+    <div class="tgbtns"><button class="pxbtn navy small" id="tgleave" type="button" title="Leave the tailgate">Leave</button><button class="pxbtn navy small" id="tgchattoggle" type="button" aria-pressed="true">Chat</button></div>
+  </div>
+
+  <div class="tgcenter">
+    <div class="tgpanel px" id="tglobby">
+      <span class="rib">Tiger Tailgate · lobby</span>
+      <div class="rowsb"><div class="pcode" id="tgcodebig"></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="see" id="tgcopy" type="button">Copy code</button><span class="mute small" id="tgcopied"></span></div></div>
+      <div id="tghostctl" style="display:flex;flex-direction:column;gap:10px">
+        <span class="flabel">Categories</span>
+        <details class="catpick" id="catpick">
+          <summary id="catsum">Categories</summary>
+          <div class="catmenu" id="catmenu"></div>
+        </details>
+        <span class="flabel">Seconds per turn</span>
+        <div class="seg" id="tgtimeseg" style="flex-wrap:wrap"><button type="button" data-s="3">3s</button><button type="button" data-s="5">5s</button><button type="button" data-s="6">6s</button><button type="button" data-s="8">8s</button><button type="button" data-s="10">10s</button><button type="button" data-s="15">15s</button></div>
+        <span class="flabel">Lives per animal</span>
+        <div class="seg" id="tgseg"><button type="button" data-n="1">♥</button><button type="button" data-n="2">♥♥</button><button type="button" data-n="3">♥♥♥</button></div>
+        <button class="pxbtn orange" id="tgstart" type="button">▸ Start the tailgate ◂</button>
+        <p class="mute small" id="tgstarthint" style="margin:0"></p>
+      </div>
+      <p class="mute" id="tgwait" hidden style="margin:0">Waiting for the host to start…</p>
+      <p class="mute small" id="tgcatsview" hidden style="margin:0"></p>
+    </div>
+
+    <div class="tgpanel px" id="tgprompt" hidden>
+      <span class="rib" id="tgcatlbl"></span>
+      <p class="tgq" id="tgq"></p>
+      <p class="hint" id="tglast"></p>
+      <p class="tgused" id="tgused"></p>
+    </div>
+
+    <div class="tgring" id="tgring" hidden aria-live="assertive"><b>Time!</b><span id="tgringtext"></span></div>
+
+    <div class="tgready" id="tgready" hidden aria-live="polite"><b id="tgreadyn">5</b><span><em>Get ready</em><i id="tgreadywho"></i> first</span></div>
+
+    <div class="tgfinal" id="tgfinal" hidden>
+      <div class="tgwin" id="tgwin"></div>
+      <p class="tgwinsub" id="tgwinsub"></p>
+      <button class="pxbtn orange celebrate" id="tgcel" type="button" hidden>🏀 Celebrate 🏀</button>
+      <div class="btnrow" style="justify-content:center"><button class="pxbtn orange" id="tgagain" type="button">Play again</button><button class="pxbtn navy" id="tgleave2" type="button">Leave</button></div>
+      <p class="mute" id="tgagainwait" hidden style="margin:0;text-align:center">The host can start another game.</p>
+    </div>
+  </div>
+
+  <aside class="tgchat px" id="tgchat" aria-label="Party chat">
+    <div class="rowsb"><span class="label" style="color:var(--white)">Chat</span>
+      <details class="tgplayers"><summary>Players (<span id="tgpcount">0</span>)</summary><ul id="tgplist"></ul></details></div>
+    <div class="tglog" id="tglog" aria-live="polite"></div>
+    <div class="emogrid" id="emogrid" hidden role="group" aria-label="Emotes"></div>
+    <form class="tgchatform" id="tgchatform" autocomplete="off">
+      <button class="pxbtn navy small emobtn" id="emobtn" type="button" aria-expanded="false" title="Emotes">☺</button>
+      <label class="sr-only" for="tgchatin">Chat message</label>
+      <input id="tgchatin" maxlength="140" placeholder="say something…" spellcheck="true">
+      <button class="pxbtn navy small" type="submit">Send</button>
+    </form>
+  </aside>
+
+  <div class="tgdock px" id="tgdock" hidden>
+    <span class="tghearts" id="tghearts">♥2</span>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+      <form class="entry" id="tgform" autocomplete="off">
+        <label class="sr-only" for="tginput">Your answer</label>
+        <input id="tginput" type="text" placeholder="…" spellcheck="false" autocapitalize="off" enterkeyhint="send">
+        <button class="pxbtn orange" type="submit" id="tgsend">Send</button>
+      </form>
+      <div class="tgbar" id="tgbar" hidden><i id="tgbarfill"></i></div>
+      <div class="after"><span class="nope" id="tgmsg"></span><button type="button" class="dym" id="tgdym" hidden></button></div>
+    </div>
+  </div>
+  <button class="pxbtn navy small" id="tgleave3" type="button" hidden>Leave</button>
+</div>
+<div class="crt" aria-hidden="true"></div>
+<div id="ui">
+  <header class="top">
+    <div class="brand" id="brand" hidden>Daltrillion</div>
+    <div class="trail px" id="trail" hidden>
+      <div class="nodes" id="nodes" aria-hidden="true"></div>
+      <div class="dist"><span class="label">Prowled</span><b id="dist">0 M</b></div>
+    </div>
+    <div class="phud px" id="phud" hidden>
+      <span class="pc" id="phud-code"></span>
+      <span class="label" id="phud-round"></span>
+      <div class="pchips" id="pchips"></div>
+      <button class="pxbtn navy small" id="phud-leave" type="button">Leave</button>
+    </div>
+    <div class="hbtns">
+      <button class="pxbtn navy small" id="quit" type="button" hidden>Quit</button>
+      
+    </div>
+  </header>
+
+  <main class="stage">
+    <!-- INTRO -->
+    <section id="intro">
+      <div class="logo">
+        <h1 class="title" id="title" aria-label="Daltrillion">Daltrillion</h1>
+      </div>
+      <div class="ribbon"><span id="sub"></span></div>
+      <div class="modes">
+        <button class="mode px daily" id="start" type="button">
+          <canvas class="micon" width="22" height="20" data-icon="daily" aria-hidden="true"></canvas>
+          <span class="mtext"><span class="mt" id="start-label">Daily Prowl</span><span class="md" id="start-desc">Today's prompts · one shot per day</span></span>
+          <span class="mgo" aria-hidden="true">▸</span>
+        </button>
+        <button class="mode px" id="prac" type="button">
+          <canvas class="micon" width="22" height="20" data-icon="practice" aria-hidden="true"></canvas>
+          <span class="mtext"><span class="mt">Practice</span><span class="md" id="prac-desc">Play past questions as much as you want</span></span>
+          <span class="mgo" aria-hidden="true">▸</span>
+        </button>
+        <button class="mode px party" id="party" type="button">
+          <canvas class="micon" width="22" height="20" data-icon="tailgate" aria-hidden="true"></canvas>
+          <span class="mtext"><span class="mt">Tiger Tailgate <span class="sticker" aria-hidden="true">Party</span></span><span class="md">Play live with friends · last animal standing</span></span>
+          <span class="mgo" aria-hidden="true">▸</span>
+        </button>
+      </div>
+      <button class="lbbtn px" id="lbopen" type="button">
+        <canvas class="micon" width="22" height="20" data-icon="board" aria-hidden="true"></canvas>
+        <span class="mt">Leaderboard</span><span class="lbline" id="lbline">Today's farthest prowls</span>
+        <span class="mgo" aria-hidden="true">▸</span>
+      </button>
+      <button class="pxbtn navy small devreplay" id="devreplay" type="button" hidden>Replay today's Daily (localhost only)</button>
+      <div class="devpreview" id="devpreview" hidden>
+        <span>Preview reveals (localhost only):</span>
+        <button type="button" data-preview="C">Cub</button><button type="button" data-preview="T">Paper Tiger</button><button type="button" data-preview="P">Prowler</button><button type="button" data-preview="R">Rare Stripe</button><button type="button" data-preview="D">Deep Jungle</button><button type="button" data-preview="W">White Tiger</button><button type="button" data-preview="X">Out of time</button>
+      </div>
+      <p class="perr" id="introerr" hidden role="alert"></p>
+      <div class="intro-panel px">
+        <div class="howto">
+          <span class="label">How scoring works</span>
+          <div class="tiers" id="tiers"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAY -->
+    <section id="play" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+      <div class="plaque px" id="plaque">
+        <span class="rib" id="cat"></span>
+        <h2 id="prompt"></h2>
+        <p class="hint" id="hint">▸ the rarer the answer, the farther Ivan prowls</p>
+        <p class="note" id="note"></p>
+        <div class="after" id="after" aria-live="polite">
+          <span class="nope" id="nope"></span>
+          <button type="button" class="dym" id="dym" hidden></button>
+        </div>
+        <div class="misses" id="misses"></div>
+        <div class="bellinfo" id="bellinfo" hidden>
+          <p class="lastpass" id="lastpass"></p>
+          <div class="usedwrap"><span class="flabel">Already said</span><div class="used" id="used"></div></div>
+        </div>
+      </div>
+      <div class="ring px" id="ring" hidden aria-live="assertive"><b>Ring!</b><span id="ring-text"></span></div>
+      <div class="reveal px" id="reveal" hidden aria-live="assertive">
+        <div class="banner" id="banner"><b id="r-tier"></b><span id="r-pts"></span></div>
+        <div class="reveal-body">
+          <span class="rib blue" id="r-count"></span>
+          <p class="r-match" id="r-match"></p>
+          <p class="mute" id="r-blurb"></p>
+          <p class="mute" id="r-dist"></p>
+          <button class="pxbtn orange r-next" id="r-next" type="button">Next prompt ▸</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+      <div class="res px">
+        <span class="rib" id="res-label"></span>
+        <div class="big" id="res-m"></div>
+        <div class="zone" id="res-zone"></div>
+        <div class="stats" id="stats"></div>
+        <div class="lbcard" id="res-board" hidden></div>
+        <div class="nodes" id="res-nodes" aria-hidden="true"></div>
+        <div class="share">
+          <div class="share-card" id="share-card" role="img"></div>
+          <pre id="share-text" hidden></pre>
+        </div>
+        <div class="btnrow">
+          <button class="pxbtn orange" id="sharebtn" type="button" hidden>Share your score</button>
+          <button class="pxbtn navy" id="copy" type="button">Copy result</button>
+          <button class="pxbtn navy" id="again" type="button">Practice round</button>
+          <button class="pxbtn navy" id="replay" type="button" hidden>Replay (localhost)</button>
+        </div>
+        <p class="copied" id="copied" hidden></p>
+        <span class="label">Scorecard</span>
+        <div class="rows" id="rows"></div>
+      </div>
+    </section>
+    <!-- LEADERBOARD -->
+    <section id="board" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+      <div class="px panelw lb">
+        <span class="rib">Leaderboard</span>
+        <div class="lbtabs" role="tablist" aria-label="Leaderboard">
+          <button type="button" role="tab" data-lb="today" aria-selected="true">Today</button>
+          <button type="button" role="tab" data-lb="last" aria-selected="false">Last Daily</button>
+          <button type="button" role="tab" data-lb="all" aria-selected="false">All time</button>
+        </div>
+        <div id="lbbody" aria-live="polite"></div>
+        <form class="lbname" id="lbnameform" autocomplete="off">
+          <label class="flabel" for="lbname">Your name on the board</label>
+          <div class="lbrow"><input class="ex-search" id="lbname" maxlength="16" placeholder="blank = Anonymous" spellcheck="false"><button class="pxbtn navy small" type="submit">Save</button></div>
+          <p class="mute small" id="lbnamemsg" style="margin:0">Only your Daily Prowl scores go on the board. Same name as Tiger Tailgate.</p>
+        </form>
+      </div>
+    </section>
+    <!-- PARTY: setup -->
+    <section id="psetup" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+      <div class="px panelw">
+        <span class="rib">Party mode</span>
+        <h2 class="ptitle" id="ptitle">Tiger Tailgate</h2>
+        <p class="mute" style="margin:0">Everyone sits on rocks in a jungle circle around a giant lion. When the lion points at you, you have a few seconds (the host picks how many) to name an answer in the category. Get it and the turn passes to the next animal. Run out of time and you're out. No repeats. Last animal standing wins.</p>
+        <label class="flabel" for="pname">Your name</label>
+        <input class="ex-search" id="pname" maxlength="16" placeholder="what the cubs call you" autocomplete="off" spellcheck="false">
+        <span class="flabel">Your animal</span>
+        <div class="cubs" id="cubs" role="group" aria-label="Your animal"></div>
+        <form class="skinform" id="skinform" autocomplete="off">
+          <label class="sr-only" for="skincode">Secret skin code</label>
+          <input id="skincode" maxlength="12" placeholder="got a secret skin code?" spellcheck="false" autocapitalize="characters">
+          <button class="pxbtn navy small" type="submit">Unlock</button>
+        </form>
+        <p class="mute small" id="skinmsg" style="margin:0"></p>
+        <button class="pxbtn orange" id="phost" type="button">▸ Host a tailgate ◂</button>
+        <span class="flabel">Or join by code</span>
+        <form class="entry" id="pjoin-form" autocomplete="off">
+          <label class="sr-only" for="pcode">Party code</label>
+          <input id="pcode" maxlength="4" placeholder="ABCD" autocapitalize="characters" spellcheck="false" style="letter-spacing:.3em;text-transform:uppercase">
+          <button class="pxbtn navy" type="submit">Join</button>
+        </form>
+        <p class="perr" id="perr" hidden></p>
+        <p class="mute small" style="margin:0" id="pnote">Everyone opens this same page and enters the code. In Claude, share the page with friends as Contributors.</p>
+        <button class="link-btn" id="pback" type="button">◂ Back to the title screen</button>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="dock px" id="dock" hidden>
+    <div class="clock" id="clock">
+      <span class="secs" id="secs">25</span>
+      <div class="segs" id="segs" aria-hidden="true"></div>
+    </div>
+    <form class="entry" id="form" autocomplete="off">
+      <label class="sr-only" for="answer">Your answer</label>
+      <input id="answer" type="text" placeholder="type an answer…" spellcheck="false" autocapitalize="off" enterkeyhint="go">
+      <button class="pxbtn orange" type="submit" id="pounce">Pounce</button>
+    </form>
+  </div>
+
+
+  <footer class="fine" id="fine">
+    <p>Fan-made Dalton School spin-off inspired by Krillion. Not affiliated with Krillion or The Dalton School.</p>
+    <p>Rarity tiers are hand-assigned guesses, not player statistics.</p>
+  </footer>
+</div>
+
+<!-- SHARE YOUR SCORE -->
+<div id="sharebox" class="sharebox" hidden role="dialog" aria-modal="true" aria-labelledby="sh-title">
+  <div class="px shpanel">
+    <span class="rib" id="sh-title">Share your score</span>
+    <button class="ch-x" id="sh-close" type="button" aria-label="Close">×</button>
+    <div class="sh-card" id="sh-card"></div>
+    <div id="sh-actions" hidden>
+      <label class="flabel" for="sh-to">Send to</label>
+      <input class="ex-search" id="sh-to" type="email" multiple autocomplete="email" placeholder="friend@dalton.org" spellcheck="false">
+      <label class="flabel" for="sh-msg">Your message</label>
+      <textarea class="ex-search sh-msg" id="sh-msg" maxlength="500" rows="3">Think you can beat me? Try today's Daltrillion.</textarea>
+      <div class="btnrow">
+        <button class="pxbtn orange" id="sh-gmail" type="button">Send with Gmail</button>
+        <button class="pxbtn navy" id="sh-mail" type="button">Use my mail app</button>
+      </div>
+      <button class="pxbtn navy" id="sh-native" type="button" hidden>Share with the picture attached</button>
+      <div class="btnrow">
+        <button class="pxbtn navy small" id="sh-img" type="button">Copy picture</button>
+        <button class="pxbtn navy small" id="sh-save" type="button">Save picture</button>
+      </div>
+    </div>
+    <p class="mute small" id="sh-msgline" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>window.DALTRILLION_SERVER="https://daltrillion.daltrillion.workers.dev";</script>
+<!-- Plain scripts sharing one global scope; order matters (see README).
+     No answer lists ship to the browser: they live on the server (server/src/game). -->
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/api.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/game.js"></script>
+<script src="js/board.js"></script>
+<script src="js/share.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/celebrate.js"></script>
+<script src="js/tailgate-scene.js"></script>
+<script src="js/tailgate.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/main.js"></script>
+</body>
 </html>
