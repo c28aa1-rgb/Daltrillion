@@ -7,8 +7,10 @@ function renderSetup(){
   $("pnote").textContent="Friends open this same page and enter your code.";
   perr(""); show("psetup");
 }
-/* Secret skins this browser has unlocked (Golden Ivan used to be the only one, saved as prefs.admin). */
-function unlockedSkins(){ const pr=loadPrefs(), u=new Set(Array.isArray(pr.unlocked)?pr.unlocked:[]); if(pr.admin) u.add("ivan"); return u; }
+/* Secret skins this browser has unlocked: skin id → the key the server gave for its code. A room checks the key,
+   so a skin unlocked before keys existed needs its code typed once more. */
+const skinKeys=()=>{ const k=loadPrefs().skinKeys; return k&&typeof k==="object"&&!Array.isArray(k)?k:{}; };
+function unlockedSkins(){ return new Set(Object.keys(skinKeys())); }
 const skinOk=i=>!!SKINS[i] && (!SKINS[i].secret || unlockedSkins().has(SKINS[i].id));
 function drawSkins(){
   const box=$("cubs"); box.innerHTML=""; const open=unlockedSkins();
@@ -22,8 +24,8 @@ async function tryCode(){
   if(!v){ $("skinmsg").textContent=""; return; }
   $("skinmsg").textContent="Checking…";
   const r=await api("skin",{code:v}), i=r&&r.ok ? SKINS.findIndex(s=>s.secret && s.id===r.skin) : -1;
-  if(i>=0){ const pr=loadPrefs(), u=unlockedSkins(); u.add(SKINS[i].id); savePrefs({...pr,unlocked:[...u]}); pSkin=i; drawSkins(); $("skinmsg").textContent=`Secret skin unlocked: ${SKINS[i].name}`; }
-  else $("skinmsg").textContent = r&&r.error==="offline" ? OFFLINE_MSG : "That code doesn't unlock anything.";
+  if(i>=0){ const pr=loadPrefs(), {unlocked,admin,...rest}=pr; savePrefs({...rest,skinKeys:{...skinKeys(),[SKINS[i].id]:r.key||""}}); pSkin=i; drawSkins(); $("skinmsg").textContent=`Secret skin unlocked: ${SKINS[i].name}`; }
+  else $("skinmsg").textContent = r&&r.error==="offline" ? OFFLINE_MSG : r&&r.error==="slow_down" ? r.message : "That code doesn't unlock anything.";
 }
 const myName=()=>clip($("pname").value.trim(),20);
 
@@ -49,7 +51,7 @@ async function enterParty(code, asHost){
   conn.ws.addEventListener("message",onServerMessage);
   conn.ws.addEventListener("close",onServerClose);
   party.ping=setInterval(()=>sendRoom({t:"ping"}),25000);
-  sendRoom({t:"hello",name,skin:pSkin});
+  sendRoom({t:"hello",name,skin:pSkin,key:skinKeys()[(SKINS[pSkin]||{}).id]||""});
   sys(`You ${asHost?"started":"joined"} tailgate ${code}.`);
   render(true);
 }

@@ -152,11 +152,21 @@ async function startGame(mode){
   if(r.error==="try_expired"){ introError("This test link has expired. Open it again from the admin Schedule."); return; }
   if(r.error==="no_daily"){ await loadCatalog(); introError(noDailyMsg()); return; }
   if(r.error==="no_practice"){ introError("Practice opens once the first Daily questions retire."); return; }
+  if(r.error==="daily_done"){ introError("You've already played today's Daily Prowl. A new one opens at midnight."); return; }
+  if(r.error==="slow_down"){ introError(r.message||"Too many tries at once. Wait a minute and try again."); return; }
+  // The Daily you already started today (a reload, another tab): it picks up where it was, clock and all.
+  if(r.done && r.summary){ game={mode:"daily", round:r.round, day:r.summary.day, answers:r.summary.answers, busy:false}; finish(r.summary); return; }
   if(r.error||!r.prompt){ introError(OFFLINE_MSG); return; }
   if(r.mode==="practice" && r.reset){ try{ localStorage.setItem(SEEN_KEY,"[]"); }catch(e){} }
-  game={mode:r.mode, round:r.round, day:r.day, total:r.prompt.total, prompt:r.prompt, answers:[], misses:[], suggestion:null, busy:false};
-  distShown=0; $("dist").textContent="0 M";
-  show("play"); prowlTo(0); nextPrompt();
+  const so=r.resumed&&Array.isArray(r.answers)?r.answers.slice():[];
+  game={mode:r.mode, round:r.round, day:r.day, total:r.prompt.total, prompt:r.prompt, answers:so, misses:[], suggestion:null, busy:false, left:r.resumed?r.left:null};
+  const m=totalPts(so)*M_PER_PT;
+  distShown=m; $("dist").textContent=`${fmt(m)} M`;
+  show("play"); prowlTo(m); nextPrompt();
+  if(r.resumed && r.misses && r.misses.length){
+    game.misses=[...new Set(r.misses.map(x=>String(x).toLowerCase()))];
+    $("misses").innerHTML=game.misses.map(x=>`<s>${esc(x)}</s>`).join("");
+  }
 }
 /* A short message under the title screen's buttons ("There's no Daily Prowl today…"). It fades away after a few seconds. */
 let introErrT=0;
@@ -185,7 +195,7 @@ function nextPrompt(){
   $("answer").inputMode = tl ? "numeric" : "text"; $("answer").maxLength = tl ? 4 : 80;
   $("answer").value=""; $("answer").disabled=false; $("pounce").disabled=false;
   $("answer").focus();
-  deadline=performance.now()+(p.seconds||SECONDS)*1000;
+  deadline=performance.now()+(game.left!=null?game.left:(p.seconds||SECONDS)*1000); game.left=null;
   sfx("next");
   cancelAnimationFrame(timerRaf); tick();
 }
@@ -215,7 +225,7 @@ async function submit(timeout,forced){
   $("pounce").disabled=false;
   if(res.error){
     if(res.error==="too_many"){ $("nope").textContent="▸ That's a lot of guesses. Wait for the clock."; return; }
-    $("nope").textContent = res.error==="expired" ? "▸ This round expired. Head home and start a new one." : "▸ "+OFFLINE_MSG;
+    $("nope").textContent = res.error==="expired" ? "▸ This round expired. Head home and start a new one." : res.error==="slow_down" ? "▸ "+res.message : "▸ "+OFFLINE_MSG;
     if(timeout) setTimeout(()=>{ if(game===g) submit(true); },1500);   // keep trying to close out the prompt
     return;
   }
