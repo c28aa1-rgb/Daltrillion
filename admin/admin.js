@@ -213,7 +213,7 @@ for (const n of ["year", "fact"]) F(n).addEventListener("input", () => { clearTi
 async function runCheck() {
   const d = formData();
   if (d.kind === "timeline" ? !d.year : !d.items.trim()) { $("checkbody").innerHTML = `<span class="mute">${d.kind === "timeline" ? "Add the year to check it." : "Add answers to check them."}</span>`; return; }
-  const c = await post("question/check", { kind: d.kind, items: d.items, fact: d.fact, year: d.year });
+  const c = await post("question/check", { kind: d.kind, items: d.items, fact: d.fact, year: d.year, prompt: d.prompt, note: d.note });
   if (c.error) return;
   if (d.kind === "timeline") {
     const t = c.timeline, b = t && t.bands;
