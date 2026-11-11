@@ -239,7 +239,7 @@ $("trybtn").addEventListener("click", async () => {
   const guesses = $("tryin").value.split("\n").map((s) => s.trim()).filter(Boolean);
   if (!guesses.length) return;
   const d = formData();
-  const res = await post("question/test", { kind: d.kind, items: d.items, year: d.year, guesses });
+  const res = await post("question/test", { kind: d.kind, items: d.items, year: d.year, prompt: d.prompt, note: d.note, guesses });
   if (!Array.isArray(res)) return;
   if (d.kind === "timeline") {
     $("tryout").innerHTML = res.map((r) => `<li><b>${esc(r.guess)}</b> → ${r.tier ? `${tierChip(r.tier)} ${r.off ? `${r.off} off` : "exact"}` : `<span class="flag">not a year</span>`}</li>`).join("");
