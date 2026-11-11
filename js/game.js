@@ -225,6 +225,7 @@ async function submit(timeout,forced){
   $("pounce").disabled=false;
   if(res.error){
     if(res.error==="too_many"){ $("nope").textContent="▸ That's a lot of guesses. Wait for the clock."; return; }
+    if(res.error==="too_fast"){ $("nope").textContent="▸ Easy, one guess at a time."; return; }
     $("nope").textContent = res.error==="expired" ? "▸ This round expired. Head home and start a new one." : res.error==="slow_down" ? "▸ "+res.message : "▸ "+OFFLINE_MSG;
     if(timeout) setTimeout(()=>{ if(game===g) submit(true); },1500);   // keep trying to close out the prompt
     return;
