@@ -23,7 +23,7 @@ async function tryCode(){
   const v=$("skincode").value.trim(); $("skincode").value="";
   if(!v){ $("skinmsg").textContent=""; return; }
   $("skinmsg").textContent="Checking…";
-  const r=await api("skin",{code:v}), i=r&&r.ok ? SKINS.findIndex(s=>s.secret && s.id===r.skin) : -1;
+  const r=await apiAs("skin",{code:v}), i=r&&r.ok ? SKINS.findIndex(s=>s.secret && s.id===r.skin) : -1;
   if(i>=0){ const pr=loadPrefs(), {unlocked,admin,...rest}=pr; savePrefs({...rest,skinKeys:{...skinKeys(),[SKINS[i].id]:r.key||""}}); pSkin=i; drawSkins(); $("skinmsg").textContent=`Secret skin unlocked: ${SKINS[i].name}`; }
   else $("skinmsg").textContent = r&&r.error==="offline" ? OFFLINE_MSG : r&&r.error==="slow_down" ? r.message : "That code doesn't unlock anything.";
 }
@@ -36,7 +36,12 @@ async function enterParty(code, asHost){
   if(name!==pr.name) saveBoardName(name).then(r=>{ if(r&&!r.ok&&r.message&&party) sys(`Leaderboard name not changed: ${r.message}`); });
   perr("Connecting…");
   let conn;
-  try{ conn=await connectRoom(code,asHost); }
+  try{
+    const ok=await ensurePlayer();
+    if(ok!==true){ perr(ok.message||"Couldn't reach the Daltrillion server. Check your connection and try again."); return; }
+    try{ conn=await connectRoom(code,asHost); }
+    catch(e){ if(e&&e.code==="offline" && (await ensurePlayer(true))===true) conn=await connectRoom(code,asHost); else throw e; }   // a stale pass: get it again once
+  }
   catch(e){
     const c=e&&e.code;
     perr(c==="taken" ? "That code is in use. Try hosting again for a new code."

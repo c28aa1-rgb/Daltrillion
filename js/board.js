@@ -10,6 +10,7 @@ const meters=pts=>`${fmt(pts*M_PER_PT)} m`;
 
 async function loadBoard(force){
   if(!force && BOARD.data && Date.now()-BOARD.at<15000) return BOARD.data;
+  await ensurePlayer();
   const b=await api("board?player="+encodeURIComponent(playerId()||""));
   if(b && !b.error){ BOARD.data=b; BOARD.at=Date.now(); syncName(b); }
   return BOARD.data;
@@ -24,7 +25,7 @@ function syncName(b){
 /* Names follow the same rules as the casino game (checked on the server): 2-20 letters, numbers
    and . _ ' -, nothing rude, nobody else's. Only a name the server accepted is remembered. */
 async function saveBoardName(name){
-  const r=await api("board/name",{player:playerId(),name});
+  const r=await apiAs("board/name",{name});
   if(r && r.ok){ const pr=loadPrefs(); savePrefs({...pr,name:r.name}); if(BOARD.data) BOARD.data.name=r.name; }
   return r;
 }

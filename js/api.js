@@ -11,11 +11,36 @@ const clip=(v,n)=>[...String(v==null?"":v)].filter(ch=>{ const c=ch.codePointAt(
 const CODE_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ";
 let party=null, pSkin=0;
 function perr(msg){ $("perr").textContent=msg; $("perr").hidden=!msg; }
-/* This browser's leaderboard id: random, made here, never shown to anyone. */
-function playerId(){
-  try{ let id=localStorage.getItem("daltrillion-player");
-    if(!/^[0-9a-f-]{36}$/.test(id||"")){ id=crypto.randomUUID(); localStorage.setItem("daltrillion-player",id); }
-    return id; }catch(e){ return null; }
+/* This browser's player id and its pass. The server hands both out (see /api/player) and checks the pass on
+   anything that counts per player: rounds, leaderboard names, shares, skin codes, Tailgate rooms. The id is
+   never shown to anyone. Kept in memory too, for browsers that won't save anything. */
+const PLAYER_KEY="daltrillion-player", PASS_KEY="daltrillion-pass", ME={id:null, pass:""};
+function playerId(){ try{ const id=localStorage.getItem(PLAYER_KEY); if(/^[0-9a-f-]{36}$/.test(id||"")) return id; }catch(e){} return ME.id; }
+function playerPass(){ try{ const p=localStorage.getItem(PASS_KEY); if(p) return p; }catch(e){} return ME.pass; }
+let playerAsk=null;
+/** Make sure this browser has a player id with a pass. true, or the server's {error, message}. `fresh` asks again. */
+function ensurePlayer(fresh){
+  if(!fresh && playerId() && playerPass()) return Promise.resolve(true);
+  return playerAsk || (playerAsk=(async()=>{
+    const r=await api("player",{player:playerId()||"", pass:fresh?"":playerPass()});
+    playerAsk=null;
+    if(!(r && r.player && r.pass)) return r||{error:"offline"};
+    ME.id=r.player; ME.pass=r.pass;
+    try{ localStorage.setItem(PLAYER_KEY,r.player); localStorage.setItem(PASS_KEY,r.pass); }catch(e){}
+    return true;
+  })());
+}
+/** POST as this player (adds the id and pass). If the server doesn't take the pass, gets it again and retries once. */
+async function apiAs(path, body={}){
+  let ok=await ensurePlayer();
+  if(ok!==true) return ok;
+  let r=await api(path,{...body, player:playerId(), pass:playerPass()});
+  if(r && r.error==="bad_pass"){
+    ok=await ensurePlayer(true);
+    if(ok!==true) return ok;
+    r=await api(path,{...body, player:playerId(), pass:playerPass()});
+  }
+  return r;
 }
 function loadPrefs(){ try{ return JSON.parse(localStorage.getItem(PSTORE))||{}; }catch(e){ return {}; } }
 function savePrefs(o){ try{ localStorage.setItem(PSTORE,JSON.stringify(o)); }catch(e){} }
@@ -34,7 +59,8 @@ const OFFLINE_MSG=window.DALTRILLION_OPENING_SOON ? "Daltrillion isn't open yet.
 function connectRoom(code, asHost){
   return new Promise((resolve,reject)=>{
     let ws, settled=false;
-    try{ ws=new WebSocket(SERVER.replace(/^http/,"ws")+"/ws/"+code+(asHost?"?mode=host":"")); }
+    const q=new URLSearchParams({player:playerId()||"", pass:playerPass()}); if(asHost) q.set("mode","host");
+    try{ ws=new WebSocket(SERVER.replace(/^http/,"ws")+"/ws/"+code+"?"+q); }
     catch(e){ reject({code:"offline"}); return; }
     const fail=c=>{ if(!settled){ settled=true; reject({code:c}); try{ ws.close(); }catch(e){} } };
     const timer=setTimeout(()=>fail("timeout"),10000);

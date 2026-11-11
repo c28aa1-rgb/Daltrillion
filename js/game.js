@@ -148,7 +148,7 @@ function markSeen(id){ if(!id) return; try{ const v=practiceSeen().filter(x=>x!=
 async function startGame(mode){
   if(game && game.busy) return;
   introError("");
-  const r=await api("round/start",mode==="try"?{mode:"daily",try:TRY&&TRY.ticket}:mode==="daily"?{mode,player:playerId()}:{mode,seen:practiceSeen()});
+  const r=mode==="try" ? await api("round/start",{mode:"daily",try:TRY&&TRY.ticket}) : await apiAs("round/start",mode==="daily"?{mode}:{mode,seen:practiceSeen()});
   if(r.error==="try_expired"){ introError("This test link has expired. Open it again from the admin Schedule."); return; }
   if(r.error==="no_daily"){ await loadCatalog(); introError(noDailyMsg()); return; }
   if(r.error==="no_practice"){ introError("Practice opens once the first Daily questions retire."); return; }

@@ -72,7 +72,7 @@ async function openShare(){
   const box=$("sharebox"); box.hidden=false; say("Making your score card…");
   $("sh-card").innerHTML=""; $("sh-actions").hidden=true;
   const tiers=(SHARE.answers||[]).map(a=>a.tier).join("");
-  const r=await api("share",{player:playerId(),tiers});
+  const r=await apiAs("share",{tiers});
   if(!r||r.error){ say(r&&r.message ? r.message : OFFLINE_MSG); return; }
   const info=await api("share?id="+encodeURIComponent(r.id));
   if(!info||info.error){ say(OFFLINE_MSG); return; }
