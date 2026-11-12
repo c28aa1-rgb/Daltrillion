@@ -302,7 +302,12 @@ function finish(summary){
   game=null;
   showResults(answers,g.mode,g.round,summary.day);
   // Carry over a name from Tiger Tailgate so the leaderboard shows it.
-  if(g.mode==="daily"){ const nm=loadPrefs().name; if(nm && !(BOARD.data && BOARD.data.name===nm)) saveBoardName(nm).then(renderBoardCard); }
+  // Then, still nameless? Ask for one (board.js maybeAskName).
+  if(g.mode==="daily"){
+    const nm=loadPrefs().name;
+    const synced = nm && !(BOARD.data && BOARD.data.name===nm) ? saveBoardName(nm).then(renderBoardCard) : Promise.resolve();
+    synced.then(()=>maybeAskName("daily"));
+  } else maybeAskName(g.mode);
 }
 function showResults(answers,mode,round,day){
   const dayNo=day||dayNumber();

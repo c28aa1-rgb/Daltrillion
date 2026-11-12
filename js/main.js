@@ -26,7 +26,7 @@ const nyDay=()=>{ try{ return new Intl.DateTimeFormat("en-CA",{timeZone:"America
 const BOOT_DAY=nyDay();
 function newDayCheck(){
   if(nyDay()===BOOT_DAY) return;
-  const busy=!$("play").hidden || !$("results").hidden || (typeof party!=="undefined" && party) || !$("sharebox").hidden;
+  const busy=!$("play").hidden || !$("results").hidden || (typeof party!=="undefined" && party) || !$("sharebox").hidden || !$("namebox").hidden;
   if(!busy) location.reload();
 }
 setInterval(newDayCheck, 60*1000);

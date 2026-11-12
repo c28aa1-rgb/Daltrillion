@@ -29,7 +29,7 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <!-- Order matters: later files override earlier ones. -->
 <link rel="stylesheet" href="css/base.css?v=52fe7630f1">
-<link rel="stylesheet" href="css/solo.css?v=89d9db9659">
+<link rel="stylesheet" href="css/solo.css?v=44de808810">
 <link rel="stylesheet" href="css/party.css?v=53ce650935">
 <link rel="stylesheet" href="css/effects.css?v=934029da0d">
 <link rel="stylesheet" href="css/tailgate.css?v=7ae7ffd604">
@@ -330,6 +330,23 @@
   </div>
 </div>
 
+<!-- NAME YOURSELF: covers the page after a run while you have no name on the board.
+     Only goes away by saving a name or choosing to stay anonymous (see board.js). -->
+<div id="namebox" class="sharebox namebox" hidden role="dialog" aria-modal="true" aria-labelledby="nb-title" aria-describedby="nb-why">
+  <div class="px shpanel">
+    <span class="rib" id="nb-title">Claim your spot</span>
+    <p class="nb-rank" id="nb-rank"></p>
+    <p class="mute" id="nb-why" style="margin:0"></p>
+    <form class="nbform" id="nbform" autocomplete="off">
+      <label class="flabel" for="nbname">Your name on the board</label>
+      <input class="ex-search" id="nbname" maxlength="20" placeholder="2–20 letters or numbers" spellcheck="false" autocapitalize="words" enterkeyhint="done">
+      <button class="pxbtn orange" type="submit" id="nbsave">Put me on the board ▸</button>
+    </form>
+    <p class="mute small" id="nbmsg" aria-live="polite" style="margin:0"></p>
+    <button class="link-btn nbskip" id="nbskip" type="button">No thanks, keep me anonymous</button>
+  </div>
+</div>
+
 <script>window.DALTRILLION_SERVER="https://daltrillion.daltrillion.workers.dev";</script>
 <!-- Plain scripts sharing one global scope; order matters (see README).
      No answer lists ship to the browser: they live on the server (server/src/game). -->
@@ -337,14 +354,14 @@
 <script src="js/util.js?v=e55989e512"></script>
 <script src="js/api.js?v=a0337b2b8e"></script>
 <script src="js/scene.js?v=c6ca908c4d"></script>
-<script src="js/game.js?v=963a4248f8"></script>
-<script src="js/board.js?v=5adbb8a74d"></script>
+<script src="js/game.js?v=6f516bea86"></script>
+<script src="js/board.js?v=3c87827239"></script>
 <script src="js/share.js?v=a3e4936797"></script>
 <script src="js/sprites.js?v=e253b380df"></script>
 <script src="js/celebrate.js?v=bf317a73b6"></script>
 <script src="js/tailgate-scene.js?v=51b1ab7f94"></script>
 <script src="js/tailgate.js?v=a77fd50b69"></script>
 <script src="js/sfx.js?v=413c0f2c23"></script>
-<script src="js/main.js?v=4837cc15af"></script>
+<script src="js/main.js?v=d3982e0143"></script>
 </body>
 </html>

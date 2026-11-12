@@ -122,6 +122,61 @@ function autoName(input, msg, done){
 const lbNameReset=autoName($("lbname"),$("lbnamemsg"),n=>n?`Saved. You're on the board as ${n}.`:"Saved. You'll show up as Anonymous cub.");
 $("res-board").addEventListener("click",e=>{ if(e.target.id==="rbopen") openBoard("today"); });
 
+/* ---------- name prompt ----------
+   After a run, a player with no name on the board gets a window over the whole page asking for one.
+   It only closes by saving a name or picking "No thanks" (no backdrop click, no Escape).
+   After the Daily it asks every time; after Practice (which isn't on the board) at most once a day. */
+const NAMEASK={key:"daltrillion-nameask", mode:null, back:null};
+async function maybeAskName(mode){
+  if(mode!=="daily" && mode!=="practice") return;
+  let asked=""; try{ asked=localStorage.getItem(NAMEASK.key)||""; }catch(e){}
+  if(mode==="practice" && asked===todayKey()) return;
+  const b=await loadBoard(true);
+  if(!b || b.name) return;
+  await new Promise(r=>setTimeout(r,reduced?300:1600));   // let them see their score first
+  // Gone from the results, busy sharing, or named themselves in the results card meanwhile? Don't ask.
+  if($("results").hidden || !$("sharebox").hidden || !$("namebox").hidden || (BOARD.data && BOARD.data.name)) return;
+  try{ localStorage.setItem(NAMEASK.key,todayKey()); }catch(e){}
+  openNameAsk(mode,b);
+}
+function openNameAsk(mode,b){
+  NAMEASK.mode=mode; NAMEASK.back=document.activeElement;
+  const me=mode==="daily" && b.today && b.today.me;
+  $("nb-rank").innerHTML = me ? `You're <b>${ordinal(me.rank)}</b> of ${b.today.players} today` : "Nice prowl!";
+  $("nb-why").innerHTML = mode==="daily"
+    ? `Right now the leaderboard shows you as <b>Anonymous cub</b>. Add a name so everyone can see how far you got. Tiger Tailgate uses the same name.`
+    : `Practice doesn't go on the board, but your Daily Prowl does. Pick a name now so your next Daily shows up as you instead of <b>Anonymous cub</b>.`;
+  $("nbname").value=loadPrefs().name||"";
+  $("nbmsg").textContent="Letters, numbers, spaces and . _ ' - only. Keep it school-appropriate.";
+  $("nbsave").disabled=false;
+  $("namebox").hidden=false;
+  $("nbname").focus();
+}
+function closeNameAsk(){
+  $("namebox").hidden=true;
+  if(NAMEASK.back && document.contains(NAMEASK.back)) try{ NAMEASK.back.focus(); }catch(e){}
+}
+$("nbform").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const v=$("nbname").value.trim();
+  if(!v){ $("nbmsg").textContent="Type a name first, or pick “No thanks” below."; $("nbname").focus(); return; }
+  $("nbsave").disabled=true; $("nbmsg").textContent="Saving…";
+  const r=await saveBoardName(v);
+  $("nbsave").disabled=false;
+  if(r && r.ok && r.name){
+    $("nbmsg").textContent=`Saved. You're on the board as ${r.name}.`; sfx("copy");
+    setTimeout(()=>{ closeNameAsk(); if(NAMEASK.mode==="daily" && !$("results").hidden) renderBoardCard(); },800);
+  } else { $("nbmsg").textContent=nameResult(r,n=>n); $("nbname").focus(); }
+});
+$("nbskip").addEventListener("click",closeNameAsk);
+// Keep Tab inside the window while it's open.
+$("namebox").addEventListener("keydown",e=>{
+  if(e.key!=="Tab") return;
+  const f=[$("nbname"),$("nbsave"),$("nbskip")], i=f.indexOf(document.activeElement);
+  if(e.shiftKey && i<=0){ e.preventDefault(); f[f.length-1].focus(); }
+  else if(!e.shiftKey && i===f.length-1){ e.preventDefault(); f[0].focus(); }
+});
+
 /* Keep the leaderboard fresh without reloading: every 5 minutes while the page is on screen, and
    straight away when you come back to the tab. */
 function refreshBoardViews(){

@@ -253,3 +253,12 @@ details[open] summary::before{content:"▾ "}
 .sh-msg{resize:vertical;min-height:72px;font-family:var(--ui)}
 .shpanel .ch-x{position:absolute;top:6px;right:8px;width:34px;height:34px;border:3px solid var(--ink);background:var(--navy-2);font-size:22px;line-height:1;padding:0}
 .shpanel .ch-x:hover{background:var(--edge)}
+
+/* ---------- name prompt (after a run, while you're Anonymous cub) ---------- */
+.namebox{z-index:31;background:rgba(5,10,24,.9)}
+.namebox .shpanel{width:min(440px,100%);gap:12px;padding:28px 20px 18px}
+.nb-rank{margin:0;font-family:var(--display);font-size:30px;line-height:1.2;color:var(--white)}
+.nb-rank b{color:var(--orange)}
+.nbform{display:flex;flex-direction:column;gap:8px}
+.nbform .ex-search{width:100%;font-size:18px}
+.nbskip{align-self:center;color:var(--mute);font-size:13px}
