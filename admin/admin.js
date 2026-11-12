@@ -420,7 +420,10 @@ $("statsbody").addEventListener("click", async (e) => {
   const add = e.target.closest("button[data-add]");
   if (add) {
     const tier = add.parentElement.querySelector("select").value;
-    const r = await post("stats/add", { id: S.cur.id, line: `${add.dataset.add}|${tier}|`, version: S.cur.version });
+    // What a player typed becomes the answer's name only: | ; @ and line breaks mean something in an answer line.
+    const name = add.dataset.add.replace(/[|;@\r\n\t]/g, " ").replace(/\s+/g, " ").trim();
+    if (!name) { $("addmsg").className = "msg err"; $("addmsg").textContent = "Nothing left to add once | ; @ are removed."; return; }
+    const r = await post("stats/add", { id: S.cur.id, line: `${name}|${tier}|`, version: S.cur.version });
     if (r.ok) { S.cur.version = r.version; add.textContent = "Added"; add.disabled = true; await refreshCurrent(true); }
     else { $("addmsg").className = "msg err"; $("addmsg").textContent = r.message || "Couldn't add."; }
   }
